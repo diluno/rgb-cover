@@ -61,6 +61,7 @@ function checkCover(_entities) {
             const col2 = palette[0];
             const col1 = palette[1];
             fetch(`http://192.168.1.214/win&R=${col1[0]}&G=${col1[1]}&B=${col1[2]}&R2=${col2[0]}&G2=${col2[1]}&B2=${col2[2]}`);
+            fetch(`http://192.168.1.13/win&R=${col1[0]}&G=${col1[1]}&B=${col1[2]}&R2=${col2[0]}&G2=${col2[1]}&B2=${col2[2]}`);
           })
           .catch((err) => {
             console.log(err);
