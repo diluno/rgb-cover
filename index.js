@@ -4,7 +4,7 @@ import http from 'http';
 import fs from 'fs';
 import { exec } from 'child_process';
 import { subscribeEntities } from 'home-assistant-js-websocket';
-const ColorThief = require('colorthief');
+import ColorThief from 'colorthief';
 
 global.WebSocket = ws;
 const homeassistant = new HomeAssistant();
@@ -63,7 +63,7 @@ function checkCover(_entities) {
           .catch((err) => {
             console.log(err);
           });
-          
+
         if (child) {
           child.kill('SIGKILL');
         }
