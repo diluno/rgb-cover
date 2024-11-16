@@ -58,8 +58,13 @@ function checkCover(_entities) {
 
         ColorThief.getPalette(img, 2)
           .then((palette) => {
-            const col1 = palette[0].join('');
-            const col2 = palette[1].join('');
+            const palettePadded = palette.map((col) => {
+              return col.map((val) => {
+                return val.toString().padStart(3, '0');
+              });
+            });
+            const col1 = palettePadded[0].join('');
+            const col2 = palettePadded[1].join('');
             console.log(col1, col2);
             fetch(`http://192.168.1.214/win&CL=${col1}&C2=${col2}`);
           })
