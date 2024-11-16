@@ -58,7 +58,7 @@ function checkCover(_entities) {
           child.kill('SIGKILL');
         }
         child = exec(
-          '/home/sam/rpi-rgb-led-matrix/utils/led-image-viewer --led-rows=64 --led-cols=64 --led-gpio-mapping=adafruit-hat-pwm --led-brightness=90 --led-pwm-lsb-nanoseconds=80 --led-limit-refresh=100 /home/sam/rgb-cover/cover.jpg',
+          '/home/sam/rpi-rgb-led-matrix/utils/led-image-viewer --led-rows=64 --led-cols=64 --led-gpio-mapping=adafruit-hat-pwm --led-brightness=90 --led-slowdown-gpio=4 /home/sam/rgb-cover/cover.jpg',
           { shell: '/bin/bash', detached: true }
         );
         child.on('error', (err) => {
