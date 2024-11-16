@@ -56,9 +56,12 @@ function checkCover(_entities) {
 
         const img = '/home/sam/rgb-cover/cover.jpg';
 
-        ColorThief.getColor(img)
-          .then((color) => {
-            console.log(color);
+        ColorThief.getPalette(img, 2)
+          .then((palette) => {
+            const col1 = palette[0].join('');
+            const col2 = palette[1].join('');
+            console.log(col1, col2);
+            fetch(`http://192.168.1.214/win&CL=${col1}&C2=${col2}`);
           })
           .catch((err) => {
             console.log(err);
