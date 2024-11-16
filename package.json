@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "child_process": "^1.0.2",
+    "colorthief": "^2.6.0",
     "fs": "^0.0.1-security",
     "home-assistant-js-websocket": "^9.4.0",
     "http": "^0.0.1-security",
