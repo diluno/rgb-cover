@@ -9,8 +9,6 @@ import ColorThief from 'colorthief';
 global.WebSocket = ws;
 const homeassistant = new HomeAssistant();
 
-console.log('welcome');
-
 const coverBase = 'http://homeassistant.local:8123';
 const mediaEntities = [
   'media_player.living_room',
@@ -26,7 +24,7 @@ var child = null;
 function turnOff() {
   setTimeout(() => {
     if (child) child.kill();
-  }, 2000);
+  }, 1000);
 }
 
 function checkCover(_entities) {
@@ -43,9 +41,9 @@ function checkCover(_entities) {
     return;
   }
   if (url == cover) return;
-  console.log(url);
+
   cover = url;
-  console.log('new cover: ' + url);
+  // console.log('new cover: ' + url);
   const file = fs.createWriteStream(imageName);
   http
     .get(url, (response) => {
@@ -71,7 +69,7 @@ function checkCover(_entities) {
           child.kill('SIGKILL');
         }
         child = exec(
-          '/home/sam/rpi-rgb-led-matrix/utils/led-image-viewer --led-rows=64 --led-cols=64 --led-gpio-mapping=adafruit-hat-pwm --led-brightness=90 --led-slowdown-gpio=4 /home/sam/rgb-cover/cover.jpg',
+          '/home/sam/rpi-rgb-led-matrix/utils/led-image-viewer --led-rows=64 --led-cols=64 --led-gpio-mapping=adafruit-hat-pwm --led-brightness=85 --led-slowdown-gpio=4 /home/sam/rgb-cover/cover.jpg',
           { shell: '/bin/bash', detached: true }
         );
         child.on('error', (err) => {
@@ -83,7 +81,7 @@ function checkCover(_entities) {
           console.error(`stderr: ${data}`);
         });
         child.on('close', (code) => {
-          console.log(`child process exited with code ${code}`);
+          // console.log(`child process exited with code ${code}`);
         });
       });
     })
