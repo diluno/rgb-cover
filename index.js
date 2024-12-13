@@ -15,6 +15,7 @@ const mediaEntities = [
   'media_player.bathroom',
   'media_player.bedroom',
   'media_player.kitchen',
+  'media_player.denon',
 ];
 const imageName = 'cover.jpg';
 let cover = '';
@@ -78,7 +79,7 @@ function checkCover(_entities) {
         });
 
         child.stderr.on('data', (data) => {
-          console.error(`stderr: ${data}`);
+          console.error(`child output: ${data}`);
         });
         child.on('close', (code) => {
           // console.log(`child process exited with code ${code}`);
