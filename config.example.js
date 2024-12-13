@@ -9,5 +9,6 @@ export default {
     'media_player.kitchen',
     'media_player.denon',
   ],
-  root: '/home/sam/rgb-cover',
+  root: '/home/sam',
+  wledUrls: ['http://192.168.1.214', 'http://192.168.1.13'],
 };
