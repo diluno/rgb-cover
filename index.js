@@ -5,7 +5,7 @@ import fs from 'fs';
 import { exec } from 'child_process';
 import { subscribeEntities } from 'home-assistant-js-websocket';
 import ColorThief from 'colorthief';
-import config from '../config.js';
+import config from './config.js';
 
 global.WebSocket = ws;
 const homeassistant = new HomeAssistant();
