@@ -5,18 +5,13 @@ import fs from 'fs';
 import { exec } from 'child_process';
 import { subscribeEntities } from 'home-assistant-js-websocket';
 import ColorThief from 'colorthief';
+import config from '../config.js';
 
 global.WebSocket = ws;
 const homeassistant = new HomeAssistant();
 
-const coverBase = 'http://homeassistant.local:8123';
-const mediaEntities = [
-  'media_player.living_room',
-  'media_player.bathroom',
-  'media_player.bedroom',
-  'media_player.kitchen',
-  'media_player.denon',
-];
+const coverBase = config.hassioUrl;
+const mediaEntities = config.entities;
 const imageName = 'cover.jpg';
 let cover = '';
 
@@ -53,14 +48,18 @@ function checkCover(_entities) {
       file.on('finish', () => {
         file.close();
 
-        const img = '/home/sam/rgb-cover/cover.jpg';
+        const img = config.root + '/cover.jpg';
 
         ColorThief.getPalette(img, 2)
           .then((palette) => {
             const col2 = palette[0];
             const col1 = palette[1];
-            fetch(`http://192.168.1.214/win&R=${col1[0]}&G=${col1[1]}&B=${col1[2]}&R2=${col2[0]}&G2=${col2[1]}&B2=${col2[2]}`);
-            fetch(`http://192.168.1.13/win&R=${col1[0]}&G=${col1[1]}&B=${col1[2]}&R2=${col2[0]}&G2=${col2[1]}&B2=${col2[2]}`);
+            fetch(
+              `http://192.168.1.214/win&R=${col1[0]}&G=${col1[1]}&B=${col1[2]}&R2=${col2[0]}&G2=${col2[1]}&B2=${col2[2]}`
+            );
+            fetch(
+              `http://192.168.1.13/win&R=${col1[0]}&G=${col1[1]}&B=${col1[2]}&R2=${col2[0]}&G2=${col2[1]}&B2=${col2[2]}`
+            );
           })
           .catch((err) => {
             console.log(err);
