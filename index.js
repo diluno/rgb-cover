@@ -33,6 +33,7 @@ function checkCover(_entities) {
     }
   });
   if (!url) {
+    cover = null;
     turnOff();
     return;
   }
@@ -50,7 +51,7 @@ function checkCover(_entities) {
 
         const img = config.root + '/rgb-cover/cover.jpg';
 
-        if (config.wledUrls.length > 0) {
+        if (config.wledUrls && config.wledUrls.length > 0) {
           ColorThief.getPalette(img, 2)
             .then((palette) => {
               const col2 = palette[0];
