@@ -56,7 +56,7 @@ function checkCover(_entities) {
         const { imageData, width } = await getImageDataFromURL(img);
 
         if (config.wledUrls && config.wledUrls.length > 0) {
-          const colors = await ColorDieb(imageData, width, 5);
+          const colors = await ColorDieb(imageData, width, config.wledColors);
           const colorsRGB = shuffleArray(colors.map((c) => hex2rgb(c)));
           const col1 = colorsRGB[0];
           const col2 = colorsRGB[1];
