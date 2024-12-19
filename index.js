@@ -71,7 +71,7 @@ function checkCover(_entities) {
           child.kill('SIGKILL');
         }
         child = exec(
-          `${config.root}/rpi-rgb-led-matrix/utils/led-image-viewer --led-rows=64 --led-cols=64 --led-gpio-mapping=adafruit-hat-pwm --led-brightness=85 --led-slowdown-gpio=4 ${config.root}/rgb-cover/cover.jpg`,
+          `${config.root}/rpi-rgb-led-matrix/utils/led-image-viewer --led-rows=64 --led-cols=64 --led-gpio-mapping=adafruit-hat-pwm --led-brightness=${config.brightness} --led-slowdown-gpio=4 ${config.root}/rgb-cover/cover.jpg`,
           { shell: '/bin/bash', detached: true }
         );
         child.on('error', (err) => {
