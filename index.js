@@ -1,19 +1,22 @@
-import HomeAssistant from './helpers/homeassistant.js';
-import ws from 'ws';
-import http from 'http';
-import fs from 'fs';
-import { exec } from 'child_process';
-import { subscribeEntities } from 'home-assistant-js-websocket';
-import ColorThief from 'colorthief';
-import config from './config.js';
+import HomeAssistant from "./helpers/homeassistant.js";
+import ws from "ws";
+import http from "http";
+import fs from "fs";
+import { exec } from "child_process";
+import { subscribeEntities } from "home-assistant-js-websocket";
+import { ColorDieb } from "./lib/ColorDieb.js";
+import { getImageDataFromURL } from "./lib/getImageDataFromURL.js";
+import { hex2rgb } from "./lib/hex2rgb.js";
+import { shuffleArray } from "./lib/shuffleArray.js";
+import config from "./config.js";
 
 global.WebSocket = ws;
 const homeassistant = new HomeAssistant();
 
 const coverBase = config.hassioUrl;
 const mediaEntities = config.entities;
-const imageName = 'cover.jpg';
-let cover = '';
+const imageName = "cover.jpg";
+let cover = "";
 
 var child = null;
 
@@ -28,7 +31,7 @@ function checkCover(_entities) {
   mediaEntities.forEach((slug) => {
     const entity = _entities[slug];
     if (!entity) return;
-    if (entity.state == 'playing' && entity.attributes.entity_picture) {
+    if (entity.state == "playing" && entity.attributes.entity_picture) {
       url = coverBase + entity.attributes.entity_picture;
     }
   });
@@ -46,48 +49,46 @@ function checkCover(_entities) {
     .get(url, (response) => {
       response.pipe(file);
 
-      file.on('finish', () => {
+      file.on("finish", async () => {
         file.close();
 
-        const img = config.root + '/rgb-cover/cover.jpg';
+        const img = config.root + "/rgb-cover/cover.jpg";
+        const { imageData, width } = await getImageDataFromURL(img);
 
         if (config.wledUrls && config.wledUrls.length > 0) {
-          ColorThief.getPalette(img, 2)
-            .then((palette) => {
-              const col2 = palette[0];
-              const col1 = palette[1];
-              config.wledUrls.forEach((url) => {
-                fetch(
-                  `${url}/win&R=${col1[0]}&G=${col1[1]}&B=${col1[2]}&R2=${col2[0]}&G2=${col2[1]}&B2=${col2[2]}`
-                );
-              });
-            })
-            .catch((err) => {
-              console.log(err);
-            });
+          const colors = await ColorDieb(imageData, width, 5);
+          const colorsRGB = shuffleArray(colors.map((c) => hex2rgb(c)));
+          const col1 = colorsRGB[0];
+          const col2 = colorsRGB[1];
+
+          config.wledUrls.forEach((url) => {
+            fetch(
+              `${url}/win&R=${col1.r}&G=${col1.g}&B=${col1.b}&R2=${col2.r}&G2=${col2.g}&B2=${col2.b}`
+            );
+          });
         }
 
         if (child) {
-          child.kill('SIGKILL');
+          child.kill("SIGKILL");
         }
         child = exec(
           `${config.root}/rpi-rgb-led-matrix/utils/led-image-viewer --led-rows=64 --led-cols=64 --led-gpio-mapping=adafruit-hat-pwm --led-brightness=${config.brightness} --led-slowdown-gpio=4 ${config.root}/rgb-cover/cover.jpg`,
-          { shell: '/bin/bash', detached: true }
+          { shell: "/bin/bash", detached: true }
         );
-        child.on('error', (err) => {
+        child.on("error", (err) => {
           console.error(err);
-          console.error('Failed to start subprocess.');
+          console.error("Failed to start subprocess.");
         });
 
-        child.stderr.on('data', (data) => {
+        child.stderr.on("data", (data) => {
           console.error(`child output: ${data}`);
         });
-        child.on('close', (code) => {
+        child.on("close", (code) => {
           // console.log(`child process exited with code ${code}`);
         });
       });
     })
-    .on('error', (err) => {
+    .on("error", (err) => {
       fs.unlink(imageName);
       console.error(`Error downloading image: ${err.message}`);
     });
