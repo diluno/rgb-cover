@@ -1,23 +1,23 @@
-import HomeAssistant from "./helpers/homeassistant.js";
-import ws from "ws";
-import http from "http";
-import fs from "fs";
-import { exec } from "child_process";
-import { subscribeEntities } from "home-assistant-js-websocket";
-import { ColorDieb } from "./lib/ColorDieb.js";
-import { getImageDataFromURL } from "./lib/getImageDataFromURL.js";
-import { hex2rgb } from "./lib/hex2rgb.js";
-import { shuffleArray } from "./lib/shuffleArray.js";
-import { centerImageInSquare } from "./lib/centerImageInSquare.js";
-import config from "./config.js";
+import HomeAssistant from './helpers/homeassistant.js';
+import ws from 'ws';
+import http from 'http';
+import fs from 'fs';
+import { exec } from 'child_process';
+import { subscribeEntities } from 'home-assistant-js-websocket';
+import { ColorDieb } from './lib/ColorDieb.js';
+import { getImageDataFromURL } from './lib/getImageDataFromURL.js';
+import { hex2rgb } from './lib/hex2rgb.js';
+import { shuffleArray } from './lib/shuffleArray.js';
+import { centerImageInSquare } from './lib/centerImageInSquare.js';
+import config from './config.js';
 
 global.WebSocket = ws;
 const homeassistant = new HomeAssistant();
 
 const coverBase = config.hassioUrl;
 const mediaEntities = config.entities;
-const imageName = "cover.jpg";
-let cover = "";
+const imageName = 'cover.jpg';
+let cover = '';
 
 var child = null;
 
@@ -34,7 +34,7 @@ function checkCover(_entities) {
     const entity = _entities[slug];
     //console.log(entity, 'entitiy')
     if (!entity) return;
-    if (entity.state == "playing" && entity.attributes.entity_picture) {
+    if (entity.state == 'playing' && entity.attributes.entity_picture) {
       url = coverBase + entity.attributes.entity_picture;
     }
   });
@@ -53,15 +53,20 @@ function checkCover(_entities) {
     .get(url, (response) => {
       response.pipe(file);
 
-      file.on("finish", async () => {
+      file.on('finish', async () => {
         file.close();
 
         const tempImagePath = imageName;
-        const squareImagePath = "square-" + imageName;
+        const squareImagePath = 'square-' + imageName;
 
-        await centerImageInSquare(tempImagePath, squareImagePath);
+        await centerImageInSquare(
+          tempImagePath,
+          squareImagePath,
+          64,
+          config.imageSampling
+        );
 
-        const img = config.root + "/rgb-cover/cover.jpg";
+        const img = config.root + '/rgb-cover/cover.jpg';
         const { imageData, width } = await getImageDataFromURL(img);
 
         if (config.wledUrls && config.wledUrls.length > 0) {
@@ -78,26 +83,26 @@ function checkCover(_entities) {
         }
 
         if (child) {
-          child.kill("SIGKILL");
+          child.kill('SIGKILL');
         }
         child = exec(
           `${config.root}/rpi-rgb-led-matrix/utils/led-image-viewer --led-rows=64 --led-cols=64 --led-gpio-mapping=adafruit-hat-pwm --led-brightness=${config.brightness} --led-slowdown-gpio=4 ${config.root}/rgb-cover/square-cover.jpg`,
-          { shell: "/bin/bash", detached: true }
+          { shell: '/bin/bash', detached: true }
         );
-        child.on("error", (err) => {
+        child.on('error', (err) => {
           console.error(err);
-          console.error("Failed to start subprocess.");
+          console.error('Failed to start subprocess.');
         });
 
-        child.stderr.on("data", (data) => {
+        child.stderr.on('data', (data) => {
           console.error(`child output: ${data}`);
         });
-        child.on("close", (code) => {
+        child.on('close', (code) => {
           // console.log(`child process exited with code ${code}`);
         });
       });
     })
-    .on("error", (err) => {
+    .on('error', (err) => {
       fs.unlink(imageName);
       console.error(`Error downloading image: ${err.message}`);
     });
