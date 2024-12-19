@@ -8,6 +8,7 @@ import { ColorDieb } from "./lib/ColorDieb.js";
 import { getImageDataFromURL } from "./lib/getImageDataFromURL.js";
 import { hex2rgb } from "./lib/hex2rgb.js";
 import { shuffleArray } from "./lib/shuffleArray.js";
+import { centerImageInSquare } from "./lib/centerImageInSquare.js";
 import config from "./config.js";
 
 global.WebSocket = ws;
@@ -28,13 +29,16 @@ function turnOff() {
 
 function checkCover(_entities) {
   let url = null;
+
   mediaEntities.forEach((slug) => {
     const entity = _entities[slug];
+    //console.log(entity, 'entitiy')
     if (!entity) return;
     if (entity.state == "playing" && entity.attributes.entity_picture) {
       url = coverBase + entity.attributes.entity_picture;
     }
   });
+
   if (!url) {
     cover = null;
     turnOff();
@@ -51,6 +55,11 @@ function checkCover(_entities) {
 
       file.on("finish", async () => {
         file.close();
+
+        const tempImagePath = imageName;
+        const squareImagePath = "square-" + imageName;
+
+        await centerImageInSquare(tempImagePath, squareImagePath);
 
         const img = config.root + "/rgb-cover/cover.jpg";
         const { imageData, width } = await getImageDataFromURL(img);
@@ -72,7 +81,7 @@ function checkCover(_entities) {
           child.kill("SIGKILL");
         }
         child = exec(
-          `${config.root}/rpi-rgb-led-matrix/utils/led-image-viewer --led-rows=64 --led-cols=64 --led-gpio-mapping=adafruit-hat-pwm --led-brightness=${config.brightness} --led-slowdown-gpio=4 ${config.root}/rgb-cover/cover.jpg`,
+          `${config.root}/rpi-rgb-led-matrix/utils/led-image-viewer --led-rows=64 --led-cols=64 --led-gpio-mapping=adafruit-hat-pwm --led-brightness=${config.brightness} --led-slowdown-gpio=4 ${config.root}/rgb-cover/square-cover.jpg`,
           { shell: "/bin/bash", detached: true }
         );
         child.on("error", (err) => {
