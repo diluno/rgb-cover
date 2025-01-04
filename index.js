@@ -24,6 +24,9 @@ var child = null;
 function turnOff() {
   setTimeout(() => {
     if (child) child.kill();
+    config.wledUrls.forEach((url) => {
+      fetch(`${url}/win&T=0`);
+    });
   }, 1000);
 }
 
@@ -98,9 +101,6 @@ function checkCover(_entities) {
           console.error(`child output: ${data}`);
         });
         child.on('close', (code) => {
-          config.wledUrls.forEach((url) => {
-            fetch(`${url}/win&T=0`);
-          });
           // console.log(`child process exited with code ${code}`);
         });
       });
