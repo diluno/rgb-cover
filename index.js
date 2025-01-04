@@ -77,7 +77,7 @@ function checkCover(_entities) {
 
           config.wledUrls.forEach((url) => {
             fetch(
-              `${url}/win&R=${col1.r}&G=${col1.g}&B=${col1.b}&R2=${col2.r}&G2=${col2.g}&B2=${col2.b}`
+              `${url}/win&T=1&R=${col1.r}&G=${col1.g}&B=${col1.b}&R2=${col2.r}&G2=${col2.g}&B2=${col2.b}`
             );
           });
         }
@@ -98,6 +98,9 @@ function checkCover(_entities) {
           console.error(`child output: ${data}`);
         });
         child.on('close', (code) => {
+          config.wledUrls.forEach((url) => {
+            fetch(`${url}/win&T=0`);
+          });
           // console.log(`child process exited with code ${code}`);
         });
       });
