@@ -1,6 +1,9 @@
 import HomeAssistant from './helpers/homeassistant.js';
 import ws from 'ws';
 import sharp from 'sharp';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { subscribeEntities } from 'home-assistant-js-websocket';
 import { startServer, updateState, setCallbacks } from './server.js';
 import { ColorDieb } from './lib/ColorDieb.js';
@@ -30,6 +33,9 @@ import config from './config.js';
 
 global.WebSocket = ws;
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const SETTINGS_FILE = path.join(__dirname, 'settings.json');
+
 const homeassistant = new HomeAssistant();
 const coverBase = config.hassioUrl;
 const mediaEntities = config.entities;
@@ -42,15 +48,46 @@ let debounceTimer = null;
 let isTransitioning = false;
 let lastEntities = null;
 
+// ==================== SETTINGS PERSISTENCE ====================
+
+function getDefaultSettings() {
+  return {
+    brightness: config.brightness || 85,
+    transition: config.transition || 'crossfade',
+    transitionDuration: config.transitionDuration || 500,
+    showClock: config.showClock !== false,
+    clockColor: config.clockColor || { r: 120, g: 80, b: 200 },
+    wledColors: config.wledColors || 5,
+  };
+}
+
+function loadSettings() {
+  try {
+    if (fs.existsSync(SETTINGS_FILE)) {
+      const data = fs.readFileSync(SETTINGS_FILE, 'utf-8');
+      const saved = JSON.parse(data);
+      console.log('Loaded settings from settings.json');
+      // Merge with defaults in case new settings were added
+      return { ...getDefaultSettings(), ...saved };
+    }
+  } catch (err) {
+    console.error('Failed to load settings.json:', err.message);
+  }
+  console.log('Using default settings from config.js');
+  return getDefaultSettings();
+}
+
+function saveSettings() {
+  try {
+    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+    console.log('Settings saved to settings.json');
+  } catch (err) {
+    console.error('Failed to save settings:', err.message);
+  }
+}
+
 // Settings (can be changed via web UI)
-let settings = {
-  brightness: config.brightness || 85,
-  transition: config.transition || 'crossfade',
-  transitionDuration: config.transitionDuration || 500,
-  showClock: config.showClock !== false,
-  clockColor: config.clockColor || { r: 120, g: 80, b: 200 },
-  wledColors: config.wledColors || 5,
-};
+let settings = loadSettings();
 
 // Initialize matrix
 initMatrix(settings.brightness);
@@ -221,6 +258,7 @@ setCallbacks({
   onBrightnessChange: (brightness) => {
     settings.brightness = brightness;
     setBrightness(brightness);
+    saveSettings();
     
     // Redraw current content
     if (isClockVisible()) {
@@ -245,6 +283,7 @@ setCallbacks({
   onTransitionChange: (type, duration) => {
     settings.transition = type;
     settings.transitionDuration = duration;
+    saveSettings();
     console.log(`Transition changed to ${type} (${duration}ms)`);
   },
   
@@ -252,6 +291,7 @@ setCallbacks({
     settings.showClock = showClock;
     settings.clockColor = clockColor;
     setClockColor(clockColor);
+    saveSettings();
     
     // If clock should be shown and nothing is playing, start it
     if (showClock && !currentCover && !isClockVisible()) {
@@ -271,6 +311,7 @@ setCallbacks({
   
   onWledColorsChange: (wledColors) => {
     settings.wledColors = wledColors;
+    saveSettings();
     console.log(`WLED colors changed to ${wledColors}`);
   },
   
