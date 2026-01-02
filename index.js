@@ -36,21 +36,9 @@ global.WebSocket = ws;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Try app directory first, fall back to /var/tmp (persists across reboots)
-function getSettingsPath() {
-  const localPath = path.join(__dirname, 'settings.json');
-  try {
-    // Test if we can write to the app directory
-    fs.accessSync(__dirname, fs.constants.W_OK);
-    console.log(`Settings file: ${localPath}`);
-    return localPath;
-  } catch {
-    const fallbackPath = '/var/tmp/rgb-cover-settings.json';
-    console.log(`App directory not writable, using: ${fallbackPath}`);
-    return fallbackPath;
-  }
-}
-const SETTINGS_FILE = getSettingsPath();
+// Use /var/tmp for settings (persists across reboots, always writable)
+const SETTINGS_FILE = '/var/tmp/rgb-cover-settings.json';
+console.log(`Settings file: ${SETTINGS_FILE}`);
 
 const homeassistant = new HomeAssistant();
 const coverBase = config.hassioUrl;
