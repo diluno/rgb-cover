@@ -178,12 +178,30 @@ const embeddedHTML = `<!DOCTYPE html>
       <div class="control-row">
         <span class="control-label">Effect</span>
         <select id="transition">
-          <option value="crossfade">Crossfade</option>
-          <option value="slideLeft">Slide Left</option>
-          <option value="slideRight">Slide Right</option>
-          <option value="slideUp">Slide Up</option>
-          <option value="slideDown">Slide Down</option>
-          <option value="dissolve">Dissolve</option>
+          <optgroup label="Blend">
+            <option value="crossfade">Crossfade</option>
+            <option value="dissolve">Dissolve</option>
+          </optgroup>
+          <optgroup label="Slide">
+            <option value="slideLeft">Slide Left</option>
+            <option value="slideRight">Slide Right</option>
+            <option value="slideUp">Slide Up</option>
+            <option value="slideDown">Slide Down</option>
+          </optgroup>
+          <optgroup label="Wipe">
+            <option value="wipeRight">Wipe Right</option>
+            <option value="wipeLeft">Wipe Left</option>
+            <option value="wipeDown">Wipe Down</option>
+            <option value="wipeUp">Wipe Up</option>
+          </optgroup>
+          <optgroup label="Reveal">
+            <option value="blindsH">Blinds Horizontal</option>
+            <option value="blindsV">Blinds Vertical</option>
+            <option value="circle">Circle</option>
+            <option value="diamond">Diamond</option>
+            <option value="spiral">Spiral</option>
+            <option value="checkerboard">Checkerboard</option>
+          </optgroup>
         </select>
       </div>
       <div class="control-row" style="margin-top: 16px;">
