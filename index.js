@@ -12,7 +12,8 @@ import {
   clearMatrix, 
   setBrightness, 
   getPixelsFromBuffer,
-  MATRIX_SIZE 
+  MATRIX_SIZE,
+  sync as matrixSync
 } from './lib/matrix.js';
 import { transition, fadeOut } from './lib/transitions.js';
 import { 
@@ -236,7 +237,7 @@ setCallbacks({
           }).setPixel(x, y);
         }
       }
-      matrix.sync();
+      matrixSync();
     }
     console.log(`Brightness changed to ${brightness}%`);
   },
