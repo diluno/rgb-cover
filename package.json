@@ -1,7 +1,7 @@
 {
   "name": "rgb-cover",
-  "version": "1.0.0",
-  "description": "Display album art on a 64x64 RGB LED matrix with WLED ambient lighting",
+  "version": "2.0.0",
+  "description": "Display album art on a 64x64 RGB LED matrix with WLED ambient lighting and smooth transitions",
   "main": "index.js",
   "type": "module",
   "scripts": {
@@ -12,6 +12,7 @@
   "license": "ISC",
   "dependencies": {
     "home-assistant-js-websocket": "^9.4.0",
+    "rpi-led-matrix": "^1.14.0",
     "sharp": "^0.33.5",
     "ws": "^8.18.0"
   }

@@ -1,8 +1,12 @@
 export default {
+  // Matrix brightness (0-100)
   brightness: 85,
+  
+  // Home Assistant connection
   hassioUrl: 'http://homeassistant.local:8123',
-  hassioToken:
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiI2ZDM5NGE5N2VhYTM0ZmJiYWY0MDFiYTMzZjRhZjFiYyIsImlhdCI6MTcwNTA5NDM2MywiZXhwIjoyMDIwNDU0MzYzfQ.91RstDHi9OG1U0_OFWudSjaNGzTo5RWX2laKbhIFZMU',
+  hassioToken: 'your-long-lived-access-token-here',
+  
+  // Media players to monitor (in priority order - first playing wins)
   entities: [
     'media_player.living_room',
     'media_player.bathroom',
@@ -10,7 +14,13 @@ export default {
     'media_player.kitchen',
     'media_player.denon',
   ],
-  root: '/home/sam',
+  
+  // WLED ambient lighting
   wledColors: 5,
   wledUrls: ['http://192.168.1.214', 'http://192.168.1.13'],
+  
+  // Transition settings
+  // Options: 'crossfade', 'slideLeft', 'slideRight', 'slideUp', 'slideDown', 'dissolve'
+  transition: 'crossfade',
+  transitionDuration: 500, // milliseconds
 };
