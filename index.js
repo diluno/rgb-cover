@@ -2,11 +2,11 @@ import HomeAssistant from './helpers/homeassistant.js';
 import ws from 'ws';
 import { subscribeEntities } from 'home-assistant-js-websocket';
 import { ColorDieb } from './lib/ColorDieb.js';
-import { getImageDataFromURL } from './lib/getImageDataFromURL.js';
 import { hex2rgb } from './lib/hex2rgb.js';
 import { shuffleArray } from './lib/shuffleArray.js';
 import sharp from 'sharp';
-import { LedMatrix, GpioMapping, PixelMapperType } from 'rpi-led-matrix';
+import { LedMatrix, GpioMapping } from 'rpi-led-matrix';
+import { startServer, updateState, setCallbacks } from './server.js';
 import config from './config.js';
 
 global.WebSocket = ws;
@@ -17,9 +17,18 @@ const mediaEntities = config.entities;
 const MATRIX_SIZE = 64;
 
 let currentCover = '';
-let currentPixels = null; // Store current frame for transitions
+let currentEntity = null;
+let currentPixels = null;
 let debounceTimer = null;
 let isTransitioning = false;
+let lastEntities = null;
+
+// Dynamic settings (can be changed via web UI)
+let settings = {
+  brightness: config.brightness || 85,
+  transition: config.transition || 'crossfade',
+  transitionDuration: config.transitionDuration || 500,
+};
 
 // Matrix configuration
 const matrixOptions = {
@@ -27,7 +36,7 @@ const matrixOptions = {
   rows: MATRIX_SIZE,
   cols: MATRIX_SIZE,
   hardwareMapping: GpioMapping.AdafruitHatPwm,
-  brightness: config.brightness || 85,
+  brightness: settings.brightness,
   pwmLsbNanoseconds: 130,
   pwmDitherBits: 0,
 };
@@ -58,9 +67,6 @@ const TransitionType = {
   DISSOLVE: 'dissolve',
 };
 
-// Current transition setting (can be made configurable)
-const TRANSITION_TYPE = config.transition || TransitionType.CROSSFADE;
-const TRANSITION_DURATION = config.transitionDuration || 500; // ms
 const TRANSITION_FPS = 30;
 
 // Debounce wrapper
@@ -84,6 +90,20 @@ function cleanup() {
 process.on('SIGINT', cleanup);
 process.on('SIGTERM', cleanup);
 
+// Update web UI state
+function syncWebState() {
+  updateState({
+    currentCover,
+    currentEntity,
+    isPlaying: !!currentCover,
+    brightness: settings.brightness,
+    transition: settings.transition,
+    transitionDuration: settings.transitionDuration,
+    wledUrls: config.wledUrls,
+    entities: mediaEntities,
+  });
+}
+
 // Turn off matrix and WLED
 function turnOff() {
   setTimeout(async () => {
@@ -92,6 +112,8 @@ function turnOff() {
       matrix.clear().sync();
     }
     currentPixels = null;
+    currentEntity = null;
+    syncWebState();
     config.wledUrls.forEach((url) => {
       fetch(`${url}/win&T=0`).catch(() => {});
     });
@@ -111,22 +133,6 @@ async function getPixelsFromBuffer(buffer) {
     width: info.width,
     height: info.height,
   };
-}
-
-// Draw pixels to matrix
-function drawPixels(pixels) {
-  if (!matrix || !pixels) return;
-
-  for (let y = 0; y < pixels.height; y++) {
-    for (let x = 0; x < pixels.width; x++) {
-      const i = (y * pixels.width + x) * 4;
-      const r = pixels.data[i];
-      const g = pixels.data[i + 1];
-      const b = pixels.data[i + 2];
-      matrix.fgColor({ r, g, b }).setPixel(x, y);
-    }
-  }
-  matrix.sync();
 }
 
 // Lerp helper for smooth interpolation
@@ -238,7 +244,6 @@ async function dissolve(fromPixels, toPixels, duration) {
   for (let frame = 0; frame <= frames; frame++) {
     const pixelsToReveal = Math.floor((frame / frames) * totalPixels);
     
-    // Mark pixels to reveal this frame
     while (revealed.size < pixelsToReveal && revealed.size < totalPixels) {
       revealed.add(indices[revealed.size]);
     }
@@ -326,10 +331,14 @@ function sleep(ms) {
 }
 
 async function checkCover(_entities) {
+  // Store entities for refresh
+  lastEntities = _entities;
+  
   // Skip if currently transitioning
   if (isTransitioning) return;
 
   let url = null;
+  let activeEntity = null;
 
   // Priority: first playing entity wins
   for (const slug of mediaEntities) {
@@ -337,18 +346,25 @@ async function checkCover(_entities) {
     if (!entity) continue;
     if (entity.state === 'playing' && entity.attributes.entity_picture) {
       url = coverBase + entity.attributes.entity_picture;
+      activeEntity = slug;
       break;
     }
   }
 
   if (!url) {
-    currentCover = null;
-    turnOff();
+    if (currentCover) {
+      currentCover = null;
+      currentEntity = null;
+      syncWebState();
+      turnOff();
+    }
     return;
   }
 
   if (url === currentCover) return;
   currentCover = url;
+  currentEntity = activeEntity;
+  syncWebState();
 
   try {
     // Fetch image
@@ -364,7 +380,7 @@ async function checkCover(_entities) {
 
     // Perform transition
     if (matrix) {
-      await transition(currentPixels, newPixels, TRANSITION_TYPE, TRANSITION_DURATION);
+      await transition(currentPixels, newPixels, settings.transition, settings.transitionDuration);
     }
     
     // Store current pixels for next transition
@@ -372,7 +388,6 @@ async function checkCover(_entities) {
 
     // Extract colors for WLED
     if (config.wledUrls && config.wledUrls.length > 0) {
-      // Process for color extraction (need imageData format)
       const { data } = await sharp(imageBuffer)
         .resize(MATRIX_SIZE, MATRIX_SIZE, { fit: 'contain', background: '#000' })
         .ensureAlpha()
@@ -402,6 +417,48 @@ async function checkCover(_entities) {
   }
 }
 
+// Web UI callbacks
+setCallbacks({
+  onBrightnessChange: (brightness) => {
+    settings.brightness = brightness;
+    if (matrix) {
+      matrix.brightness(brightness);
+      // Redraw current image with new brightness
+      if (currentPixels) {
+        for (let y = 0; y < MATRIX_SIZE; y++) {
+          for (let x = 0; x < MATRIX_SIZE; x++) {
+            const i = (y * MATRIX_SIZE + x) * 4;
+            const r = currentPixels.data[i];
+            const g = currentPixels.data[i + 1];
+            const b = currentPixels.data[i + 2];
+            matrix.fgColor({ r, g, b }).setPixel(x, y);
+          }
+        }
+        matrix.sync();
+      }
+    }
+    console.log(`Brightness changed to ${brightness}%`);
+  },
+  onTransitionChange: (type, duration) => {
+    settings.transition = type;
+    settings.transitionDuration = duration;
+    console.log(`Transition changed to ${type} (${duration}ms)`);
+  },
+  onRefresh: () => {
+    if (lastEntities) {
+      currentCover = ''; // Force refresh
+      checkCover(lastEntities);
+    }
+  },
+});
+
+// Initialize web state
+syncWebState();
+
+// Start web server
+const webPort = config.webPort || 3000;
+startServer(webPort);
+
 // Wrap checkCover with debouncing
 const debouncedCheckCover = debounce(checkCover, 500);
 
@@ -411,5 +468,5 @@ subscribeEntities(conn, (ent) => {
 });
 
 console.log('RGB Cover started with transition effects!');
-console.log(`Transition: ${TRANSITION_TYPE}, Duration: ${TRANSITION_DURATION}ms`);
+console.log(`Transition: ${settings.transition}, Duration: ${settings.transitionDuration}ms`);
 console.log('Listening for media player updates...');

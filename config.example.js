@@ -23,4 +23,7 @@ export default {
   // Options: 'crossfade', 'slideLeft', 'slideRight', 'slideUp', 'slideDown', 'dissolve'
   transition: 'crossfade',
   transitionDuration: 500, // milliseconds
+  
+  // Web interface port
+  webPort: 3000,
 };
