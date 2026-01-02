@@ -42,10 +42,12 @@ function getSettingsPath() {
   try {
     // Test if we can write to the app directory
     fs.accessSync(__dirname, fs.constants.W_OK);
+    console.log(`Settings file: ${localPath}`);
     return localPath;
   } catch {
-    console.log('App directory not writable, using /var/tmp/rgb-cover-settings.json');
-    return '/var/tmp/rgb-cover-settings.json';
+    const fallbackPath = '/var/tmp/rgb-cover-settings.json';
+    console.log(`App directory not writable, using: ${fallbackPath}`);
+    return fallbackPath;
   }
 }
 const SETTINGS_FILE = getSettingsPath();
@@ -98,14 +100,17 @@ function loadSettings() {
 function saveSettings() {
   try {
     fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
-    console.log('Settings saved to settings.json');
+    console.log(`Settings saved to ${SETTINGS_FILE}`);
   } catch (err) {
-    console.error('Failed to save settings:', err.message);
+    console.error(`Failed to save settings to ${SETTINGS_FILE}:`, err.message);
   }
 }
 
 // Settings (can be changed via web UI)
 let settings = loadSettings();
+
+// Save settings on startup to create file if it doesn't exist
+saveSettings();
 
 // Initialize matrix
 initMatrix(settings.brightness);
