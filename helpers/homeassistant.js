@@ -11,6 +11,7 @@ class HomeAssistant {
     this.hassioUrl = config.hassioUrl;
     this.token = config.hassioToken;
   }
+
   async connectSocket() {
     let auth;
     try {
@@ -19,12 +20,13 @@ class HomeAssistant {
       if (err === ERR_HASS_HOST_REQUIRED) {
         auth = await getAuth({ hassUrl: this.hassioUrl });
       } else {
-        alert(`Unknown error: ${err}`);
-        return;
+        console.error(`Home Assistant connection error: ${err}`);
+        throw err;
       }
     }
     const connection = await createConnection({ auth });
     return connection;
   }
 }
+
 export default HomeAssistant;
