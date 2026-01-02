@@ -26,4 +26,8 @@ export default {
   
   // Web interface port
   webPort: 3000,
+  
+  // Clock settings (shown when nothing is playing)
+  showClock: true,
+  clockColor: { r: 120, g: 80, b: 200 }, // Purple
 };
