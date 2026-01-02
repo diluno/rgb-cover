@@ -35,7 +35,20 @@ import config from './config.js';
 global.WebSocket = ws;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const SETTINGS_FILE = path.join(__dirname, 'settings.json');
+
+// Try app directory first, fall back to /var/tmp (persists across reboots)
+function getSettingsPath() {
+  const localPath = path.join(__dirname, 'settings.json');
+  try {
+    // Test if we can write to the app directory
+    fs.accessSync(__dirname, fs.constants.W_OK);
+    return localPath;
+  } catch {
+    console.log('App directory not writable, using /var/tmp/rgb-cover-settings.json');
+    return '/var/tmp/rgb-cover-settings.json';
+  }
+}
+const SETTINGS_FILE = getSettingsPath();
 
 const homeassistant = new HomeAssistant();
 const coverBase = config.hassioUrl;
@@ -344,6 +357,7 @@ setCallbacks({
       matrixSync();
     }
     console.log(`Brightness changed to ${brightness}%`);
+    
   },
   
   onTransitionChange: (type, duration) => {
