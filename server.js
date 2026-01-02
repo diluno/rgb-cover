@@ -14,12 +14,18 @@ let state = {
   transition: 'crossfade',
   transitionDuration: 500,
   wledUrls: [],
+  wledColors: 5,
   entities: [],
+  showClock: true,
+  clockColor: { r: 120, g: 80, b: 200 },
+  clockVisible: false,
 };
 
 let callbacks = {
   onBrightnessChange: null,
   onTransitionChange: null,
+  onClockChange: null,
+  onWledColorsChange: null,
   onRefresh: null,
 };
 
@@ -130,6 +136,25 @@ const embeddedHTML = `<!DOCTYPE html>
     button:hover { background: var(--border); border-color: var(--text-muted); }
     button.primary { background: var(--accent); border-color: var(--accent); }
     button.primary:hover { background: #8b5cf6; border-color: #8b5cf6; }
+    .toggle { position: relative; width: 48px; height: 26px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; cursor: pointer; inset: 0; background: var(--bg-tertiary);
+      border-radius: 13px; transition: 0.2s; border: 1px solid var(--border);
+    }
+    .toggle-slider:before {
+      position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px;
+      background: var(--text-secondary); border-radius: 50%; transition: 0.2s;
+    }
+    .toggle input:checked + .toggle-slider { background: var(--accent); border-color: var(--accent); }
+    .toggle input:checked + .toggle-slider:before { transform: translateX(22px); background: white; }
+    input[type="color"] {
+      -webkit-appearance: none; appearance: none; width: 40px; height: 32px;
+      border: 1px solid var(--border); border-radius: 8px; cursor: pointer;
+      background: var(--bg-tertiary); padding: 2px;
+    }
+    input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+    input[type="color"]::-webkit-color-swatch { border: none; border-radius: 6px; }
     .toast {
       position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
       background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px;
@@ -211,6 +236,28 @@ const embeddedHTML = `<!DOCTYPE html>
       <input type="range" id="duration" min="100" max="2000" step="100" value="500">
     </div>
     <div class="card">
+      <div class="card-title">Clock (Idle Screen)</div>
+      <div class="control-row">
+        <span class="control-label">Show Clock</span>
+        <label class="toggle">
+          <input type="checkbox" id="showClock" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="control-row">
+        <span class="control-label">Color</span>
+        <input type="color" id="clockColor" value="#7850c8">
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">WLED Ambient</div>
+      <div class="control-row">
+        <span class="control-label">Palette Colors</span>
+        <span class="control-value" id="wledColorsValue">5</span>
+      </div>
+      <input type="range" id="wledColors" min="2" max="10" value="5">
+    </div>
+    <div class="card">
       <div class="card-title">Actions</div>
       <div class="button-row">
         <button id="refreshBtn">Refresh</button>
@@ -235,9 +282,21 @@ const embeddedHTML = `<!DOCTYPE html>
     const transitionSelect = document.getElementById('transition');
     const durationSlider = document.getElementById('duration');
     const durationValue = document.getElementById('durationValue');
+    const showClockToggle = document.getElementById('showClock');
+    const clockColorInput = document.getElementById('clockColor');
+    const wledColorsSlider = document.getElementById('wledColors');
+    const wledColorsValue = document.getElementById('wledColorsValue');
     const refreshBtn = document.getElementById('refreshBtn');
     const saveBtn = document.getElementById('saveBtn');
     const toast = document.getElementById('toast');
+
+    function rgbToHex(r, g, b) {
+      return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+    }
+    function hexToRgb(hex) {
+      const result = /^#?([a-f\\d]{2})([a-f\\d]{2})([a-f\\d]{2})$/i.exec(hex);
+      return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : null;
+    }
 
     function showToast(message, type = 'default') {
       toast.textContent = message;
@@ -279,6 +338,12 @@ const embeddedHTML = `<!DOCTYPE html>
         transitionSelect.value = state.transition;
         durationSlider.value = state.transitionDuration;
         durationValue.textContent = state.transitionDuration + 'ms';
+        showClockToggle.checked = state.showClock;
+        if (state.clockColor) {
+          clockColorInput.value = rgbToHex(state.clockColor.r, state.clockColor.g, state.clockColor.b);
+        }
+        wledColorsSlider.value = state.wledColors || 5;
+        wledColorsValue.textContent = state.wledColors || 5;
       }
     }
 
@@ -302,6 +367,9 @@ const embeddedHTML = `<!DOCTYPE html>
             brightness: parseInt(brightnessSlider.value),
             transition: transitionSelect.value,
             transitionDuration: parseInt(durationSlider.value),
+            showClock: showClockToggle.checked,
+            clockColor: hexToRgb(clockColorInput.value),
+            wledColors: parseInt(wledColorsSlider.value),
           }),
         });
         const data = await res.json();
@@ -337,7 +405,13 @@ const embeddedHTML = `<!DOCTYPE html>
       durationValue.textContent = durationSlider.value + 'ms';
       markDirty();
     });
+    wledColorsSlider.addEventListener('input', () => {
+      wledColorsValue.textContent = wledColorsSlider.value;
+      markDirty();
+    });
     transitionSelect.addEventListener('change', markDirty);
+    showClockToggle.addEventListener('change', markDirty);
+    clockColorInput.addEventListener('input', markDirty);
     saveBtn.addEventListener('click', saveSettings);
     refreshBtn.addEventListener('click', refresh);
     
@@ -414,6 +488,18 @@ function handleApi(req, res) {
         if (settings.transitionDuration !== undefined) {
           state.transitionDuration = settings.transitionDuration;
           callbacks.onTransitionChange?.(state.transition, state.transitionDuration);
+        }
+        if (settings.showClock !== undefined) {
+          state.showClock = settings.showClock;
+          callbacks.onClockChange?.(state.showClock, state.clockColor);
+        }
+        if (settings.clockColor !== undefined) {
+          state.clockColor = settings.clockColor;
+          callbacks.onClockChange?.(state.showClock, state.clockColor);
+        }
+        if (settings.wledColors !== undefined) {
+          state.wledColors = Math.max(1, Math.min(10, settings.wledColors));
+          callbacks.onWledColorsChange?.(state.wledColors);
         }
 
         res.writeHead(200, { 'Content-Type': 'application/json' });

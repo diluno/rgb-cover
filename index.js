@@ -46,15 +46,16 @@ let settings = {
   brightness: config.brightness || 85,
   transition: config.transition || 'crossfade',
   transitionDuration: config.transitionDuration || 500,
+  showClock: config.showClock !== false,
+  clockColor: config.clockColor || { r: 120, g: 80, b: 200 },
+  wledColors: config.wledColors || 5,
 };
 
 // Initialize matrix
 initMatrix(settings.brightness);
 
 // Initialize clock
-if (config.clockColor) {
-  setClockColor(config.clockColor);
-}
+setClockColor(settings.clockColor);
 setOnStateChange(syncWebState);
 
 // ==================== HELPERS ====================
@@ -75,7 +76,10 @@ function syncWebState() {
     transition: settings.transition,
     transitionDuration: settings.transitionDuration,
     wledUrls: config.wledUrls,
+    wledColors: settings.wledColors,
     entities: mediaEntities,
+    showClock: settings.showClock,
+    clockColor: settings.clockColor,
     clockVisible: isClockVisible(),
   });
 }
@@ -93,7 +97,7 @@ function turnOff() {
     syncWebState();
     
     // Start clock when idle
-    if (config.showClock !== false) {
+    if (settings.showClock) {
       startClock();
     }
     
@@ -120,7 +124,7 @@ async function updateWLED(imageBuffer) {
       height: MATRIX_SIZE,
     };
 
-    const colors = await ColorDieb(imageData, MATRIX_SIZE, config.wledColors);
+    const colors = await ColorDieb(imageData, MATRIX_SIZE, settings.wledColors);
     const colorsRGB = shuffleArray(colors.map((c) => hex2rgb(c)));
     const col1 = colorsRGB[0];
     const col2 = colorsRGB[1];
@@ -243,6 +247,32 @@ setCallbacks({
     console.log(`Transition changed to ${type} (${duration}ms)`);
   },
   
+  onClockChange: (showClock, clockColor) => {
+    settings.showClock = showClock;
+    settings.clockColor = clockColor;
+    setClockColor(clockColor);
+    
+    // If clock should be shown and nothing is playing, start it
+    if (showClock && !currentCover && !isClockVisible()) {
+      startClock();
+    }
+    // If clock should be hidden, stop it
+    if (!showClock && isClockVisible()) {
+      stopClock();
+      clearMatrix();
+    }
+    // If clock is visible, re-render with new color
+    if (isClockVisible()) {
+      renderClock();
+    }
+    console.log(`Clock: ${showClock ? 'on' : 'off'}, color: rgb(${clockColor.r},${clockColor.g},${clockColor.b})`);
+  },
+  
+  onWledColorsChange: (wledColors) => {
+    settings.wledColors = wledColors;
+    console.log(`WLED colors changed to ${wledColors}`);
+  },
+  
   onRefresh: () => {
     if (lastEntities) {
       currentCover = '';
@@ -274,7 +304,7 @@ const conn = await homeassistant.connectSocket();
 subscribeEntities(conn, debouncedCheckCover);
 
 // Start clock on startup
-if (config.showClock !== false) {
+if (settings.showClock) {
   startClock();
 }
 
