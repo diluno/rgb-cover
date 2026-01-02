@@ -204,6 +204,9 @@ const embeddedHTML = `<!DOCTYPE html>
   <script>
     const API_BASE = '';
     let currentState = {};
+    let hasUnsavedChanges = false;
+    let lastCoverUrl = null;
+    
     const coverImage = document.getElementById('coverImage');
     const coverPlaceholder = document.getElementById('coverPlaceholder');
     const statusDot = document.getElementById('statusDot');
@@ -224,8 +227,10 @@ const embeddedHTML = `<!DOCTYPE html>
       setTimeout(() => toast.className = 'toast', 2500);
     }
 
-    function updateUI(state) {
+    function updateUI(state, updateSettings = true) {
       currentState = state;
+      
+      // Always update status
       if (state.isPlaying) {
         statusDot.classList.add('playing');
         statusText.textContent = 'Playing';
@@ -233,27 +238,37 @@ const embeddedHTML = `<!DOCTYPE html>
         statusDot.classList.remove('playing');
         statusText.textContent = 'Idle';
       }
-      if (state.currentCover) {
-        coverImage.src = '/cover.jpg?t=' + Date.now();
-        coverImage.style.display = 'block';
-        coverPlaceholder.style.display = 'none';
-      } else {
-        coverImage.style.display = 'none';
-        coverPlaceholder.style.display = 'flex';
+      
+      // Only update cover if it changed
+      if (state.currentCover !== lastCoverUrl) {
+        lastCoverUrl = state.currentCover;
+        if (state.currentCover) {
+          coverImage.src = '/cover.jpg?t=' + Date.now();
+          coverImage.style.display = 'block';
+          coverPlaceholder.style.display = 'none';
+        } else {
+          coverImage.style.display = 'none';
+          coverPlaceholder.style.display = 'flex';
+        }
       }
+      
       entityName.textContent = state.currentEntity || '—';
-      brightnessSlider.value = state.brightness;
-      brightnessValue.textContent = state.brightness + '%';
-      transitionSelect.value = state.transition;
-      durationSlider.value = state.transitionDuration;
-      durationValue.textContent = state.transitionDuration + 'ms';
+      
+      // Only update settings if no unsaved changes
+      if (updateSettings && !hasUnsavedChanges) {
+        brightnessSlider.value = state.brightness;
+        brightnessValue.textContent = state.brightness + '%';
+        transitionSelect.value = state.transition;
+        durationSlider.value = state.transitionDuration;
+        durationValue.textContent = state.transitionDuration + 'ms';
+      }
     }
 
     async function fetchStatus() {
       try {
         const res = await fetch(API_BASE + '/api/status');
         const state = await res.json();
-        updateUI(state);
+        updateUI(state, false); // Don't update settings during polling
       } catch (err) {
         statusText.textContent = 'Disconnected';
         statusDot.classList.remove('playing');
@@ -273,8 +288,9 @@ const embeddedHTML = `<!DOCTYPE html>
         });
         const data = await res.json();
         if (data.success) {
+          hasUnsavedChanges = false;
           showToast('Settings saved', 'success');
-          updateUI(data.state);
+          updateUI(data.state, true);
         }
       } catch (err) {
         showToast('Failed to save settings', 'error');
@@ -291,11 +307,34 @@ const embeddedHTML = `<!DOCTYPE html>
       }
     }
 
-    brightnessSlider.addEventListener('input', () => { brightnessValue.textContent = brightnessSlider.value + '%'; });
-    durationSlider.addEventListener('input', () => { durationValue.textContent = durationSlider.value + 'ms'; });
+    function markDirty() {
+      hasUnsavedChanges = true;
+    }
+
+    brightnessSlider.addEventListener('input', () => { 
+      brightnessValue.textContent = brightnessSlider.value + '%';
+      markDirty();
+    });
+    durationSlider.addEventListener('input', () => { 
+      durationValue.textContent = durationSlider.value + 'ms';
+      markDirty();
+    });
+    transitionSelect.addEventListener('change', markDirty);
     saveBtn.addEventListener('click', saveSettings);
     refreshBtn.addEventListener('click', refresh);
-    fetchStatus();
+    
+    // Initial fetch with settings update
+    (async () => {
+      try {
+        const res = await fetch(API_BASE + '/api/status');
+        const state = await res.json();
+        updateUI(state, true);
+      } catch (err) {
+        statusText.textContent = 'Disconnected';
+      }
+    })();
+    
+    // Polling without settings update
     setInterval(fetchStatus, 3000);
   </script>
 </body>
