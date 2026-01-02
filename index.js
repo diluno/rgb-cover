@@ -25,6 +25,7 @@ import {
   renderClock, 
   setClockColor, 
   setOnStateChange,
+  setOverlayCallback,
   isClockVisible 
 } from './lib/clock.js';
 import config from './config.js';
@@ -39,6 +40,8 @@ const SETTINGS_FILE = path.join(__dirname, 'settings.json');
 const homeassistant = new HomeAssistant();
 const coverBase = config.hassioUrl;
 const mediaEntities = config.entities;
+const CO2_ENTITY = 'sensor.indoor_carbon_dioxide';
+const CO2_THRESHOLD = config.co2Threshold || 1000; // ppm
 
 // State
 let currentCover = '';
@@ -47,6 +50,8 @@ let currentPixels = null;
 let debounceTimer = null;
 let isTransitioning = false;
 let lastEntities = null;
+let currentCo2 = null;
+let co2High = false;
 
 // ==================== SETTINGS PERSISTENCE ====================
 
@@ -95,6 +100,7 @@ initMatrix(settings.brightness);
 // Initialize clock
 setClockColor(settings.clockColor);
 setOnStateChange(syncWebState);
+setOverlayCallback(drawCo2Indicator);
 
 // ==================== HELPERS ====================
 
@@ -103,6 +109,56 @@ function debounce(fn, delay) {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => fn(...args), delay);
   };
+}
+
+// Draw red CO2 warning dot in top-right corner
+function drawCo2Indicator() {
+  if (!co2High) return;
+  
+  const matrix = getMatrix();
+  if (!matrix) return;
+  
+  // Draw a 3x3 red dot in top-right corner (with 2px margin)
+  const dotSize = 3;
+  const margin = 2;
+  const startX = MATRIX_SIZE - dotSize - margin;
+  const startY = margin;
+  
+  for (let y = 0; y < dotSize; y++) {
+    for (let x = 0; x < dotSize; x++) {
+      matrix.fgColor({ r: 255, g: 0, b: 0 }).setPixel(startX + x, startY + y);
+    }
+  }
+}
+
+function checkCo2(entities) {
+  const co2Entity = entities[CO2_ENTITY];
+  if (!co2Entity) return;
+  
+  const value = parseFloat(co2Entity.state);
+  if (isNaN(value)) return;
+  
+  const wasHigh = co2High;
+  const prevCo2 = currentCo2;
+  currentCo2 = value;
+  co2High = value >= CO2_THRESHOLD;
+  
+  // Update web state if value changed
+  if (prevCo2 !== currentCo2) {
+    syncWebState();
+  }
+  
+  // If CO2 status changed, redraw indicator
+  if (wasHigh !== co2High) {
+    console.log(`CO2: ${value} ppm - ${co2High ? 'HIGH!' : 'OK'}`);
+    // Redraw current display with updated indicator
+    if (isClockVisible()) {
+      renderClock();
+    } else if (currentPixels && getMatrix()) {
+      drawCo2Indicator();
+      matrixSync();
+    }
+  }
 }
 
 function syncWebState() {
@@ -119,6 +175,9 @@ function syncWebState() {
     showClock: settings.showClock,
     clockColor: settings.clockColor,
     clockVisible: isClockVisible(),
+    co2: currentCo2,
+    co2High,
+    co2Threshold: CO2_THRESHOLD,
   });
 }
 
@@ -182,6 +241,9 @@ async function updateWLED(imageBuffer) {
 async function checkCover(_entities) {
   lastEntities = _entities;
   
+  // Check CO2 level
+  checkCo2(_entities);
+  
   if (isTransitioning) return;
 
   let url = null;
@@ -240,6 +302,9 @@ async function checkCover(_entities) {
       } finally {
         isTransitioning = false;
       }
+      // Draw CO2 indicator on top of new cover
+      drawCo2Indicator();
+      matrixSync();
     }
     
     currentPixels = newPixels;
@@ -275,6 +340,7 @@ setCallbacks({
           }).setPixel(x, y);
         }
       }
+      drawCo2Indicator();
       matrixSync();
     }
     console.log(`Brightness changed to ${brightness}%`);
