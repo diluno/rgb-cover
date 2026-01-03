@@ -86,19 +86,36 @@ function loadSettings() {
 }
 
 function saveSettings() {
-  try {
-    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
-    console.log(`Settings saved to ${SETTINGS_FILE}`);
-  } catch (err) {
-    console.error(`Failed to save settings to ${SETTINGS_FILE}:`, err.message);
-  }
+  // Use async write to avoid issues with native module interactions
+  const data = JSON.stringify(settings, null, 2);
+  fs.writeFile(SETTINGS_FILE, data, (err) => {
+    if (err) {
+      console.error(`Failed to save settings to ${SETTINGS_FILE}:`, err.message);
+      // Try alternative location as last resort
+      const altPath = '/tmp/rgb-cover-settings.json';
+      fs.writeFile(altPath, data, (err2) => {
+        if (err2) {
+          console.error(`Also failed to save to ${altPath}:`, err2.message);
+        } else {
+          console.log(`Settings saved to ${altPath} (fallback)`);
+        }
+      });
+    } else {
+      console.log(`Settings saved to ${SETTINGS_FILE}`);
+    }
+  });
 }
 
 // Settings (can be changed via web UI)
 let settings = loadSettings();
 
-// Save settings on startup to create file if it doesn't exist
-saveSettings();
+// Save settings on startup to create file if it doesn't exist (sync for init)
+try {
+  fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+  console.log(`Settings saved to ${SETTINGS_FILE}`);
+} catch (err) {
+  console.error(`Failed to save initial settings: ${err.message}`);
+}
 
 // Initialize matrix
 initMatrix(settings.brightness);
