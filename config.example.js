@@ -32,5 +32,6 @@ export default {
   clockColor: { r: 120, g: 80, b: 200 }, // Purple
   
   // CO2 monitoring - shows red dot when above threshold
+  co2Entity: 'sensor.indoor_carbon_dioxide',
   co2Threshold: 1000, // ppm
 };

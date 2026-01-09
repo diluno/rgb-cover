@@ -43,7 +43,7 @@ console.log(`Settings file: ${SETTINGS_FILE}`);
 const homeassistant = new HomeAssistant();
 const coverBase = config.hassioUrl;
 const mediaEntities = config.entities;
-const CO2_ENTITY = 'sensor.indoor_carbon_dioxide';
+const CO2_ENTITY = config.co2Entity || 'sensor.indoor_carbon_dioxide';
 const CO2_THRESHOLD = config.co2Threshold || 1000; // ppm
 
 // State
