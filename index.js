@@ -171,9 +171,12 @@ function checkCo2(entities) {
     syncWebState();
   }
   
-  // If CO2 status changed, redraw indicator
+  // If CO2 status changed, redraw indicator (but not during transitions)
   if (wasHigh !== co2High) {
     console.log(`CO2: ${value} ppm - ${co2High ? 'HIGH!' : 'OK'}`);
+    // Don't redraw during transitions - indicator will be drawn after
+    if (isTransitioning) return;
+    
     // Redraw current display with updated indicator
     if (isClockVisible()) {
       renderClock();
@@ -348,6 +351,12 @@ setCallbacks({
     setBrightness(brightness);
     saveSettings();
     
+    // Don't redraw during transitions - brightness will be applied on next sync
+    if (isTransitioning) {
+      console.log(`Brightness changed to ${brightness}% (will apply after transition)`);
+      return;
+    }
+    
     // Redraw current content
     if (isClockVisible()) {
       renderClock();
@@ -367,7 +376,6 @@ setCallbacks({
       matrixSync();
     }
     console.log(`Brightness changed to ${brightness}%`);
-    
   },
   
   onTransitionChange: (type, duration) => {
