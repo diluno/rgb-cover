@@ -355,6 +355,29 @@
         border-radius: 6px;
       }
 
+      .palette-swatches {
+        display: flex;
+        gap: 6px;
+        margin-top: 8px;
+      }
+
+      .palette-pill {
+        flex: 1;
+        height: 28px;
+        border-radius: 14px;
+        border: 2px solid transparent;
+        cursor: pointer;
+        transition: border-color 0.15s ease, transform 0.15s ease;
+      }
+
+      .palette-pill:hover {
+        transform: scale(1.05);
+      }
+
+      .palette-pill.selected {
+        border-color: var(--accent);
+      }
+
       .toast {
         position: fixed;
         bottom: 24px;
@@ -527,13 +550,13 @@
           </div>
           <div class="control-row">
             <span class="control-label">Palette</span>
-            <select id="screensaverPalette">
-              <option value="aurora">Aurora</option>
-              <option value="ember">Ember</option>
-              <option value="ocean">Ocean</option>
-              <option value="sunset">Sunset</option>
-              <option value="forest">Forest</option>
-            </select>
+          </div>
+          <div class="palette-swatches" id="paletteSwatches">
+            <div class="palette-pill selected" data-palette="aurora" style="background: linear-gradient(to right, rgb(20,0,80), rgb(0,180,180), rgb(0,200,80), rgb(120,0,200))"></div>
+            <div class="palette-pill" data-palette="ember" style="background: linear-gradient(to right, rgb(0,0,0), rgb(150,20,0), rgb(255,120,0), rgb(255,200,50))"></div>
+            <div class="palette-pill" data-palette="ocean" style="background: linear-gradient(to right, rgb(0,10,40), rgb(0,60,180), rgb(0,200,220), rgb(200,220,255))"></div>
+            <div class="palette-pill" data-palette="sunset" style="background: linear-gradient(to right, rgb(60,0,120), rgb(200,0,100), rgb(255,120,0), rgb(255,200,80))"></div>
+            <div class="palette-pill" data-palette="forest" style="background: linear-gradient(to right, rgb(0,10,0), rgb(0,80,20), rgb(0,180,80), rgb(120,220,60))"></div>
           </div>
           <div class="control-row">
             <span class="control-label">FPS</span>
@@ -559,10 +582,8 @@
       </div>
 
       <div class="card">
-        <div class="card-title">Actions</div>
         <div class="button-row">
-          <button id="refreshBtn">Refresh</button>
-          <button id="saveBtn" class="primary">Save Settings</button>
+          <button id="refreshBtn" style="flex: 1">Refresh Display</button>
         </div>
       </div>
     </div>
@@ -572,8 +593,8 @@
     <script>
       const API_BASE = "";
       let currentState = {};
-      let hasUnsavedChanges = false;
       let lastCoverUrl = null;
+      let saveTimer = null;
 
       // DOM elements
       const coverImage = document.getElementById("coverImage");
@@ -591,14 +612,24 @@
       const clockColorInput = document.getElementById("clockColor");
       const screensaverOptions = document.getElementById("screensaverOptions");
       const screensaverEffectSelect = document.getElementById("screensaverEffect");
-      const screensaverPaletteSelect = document.getElementById("screensaverPalette");
+      const paletteSwatches = document.getElementById("paletteSwatches");
       const screensaverFpsSlider = document.getElementById("screensaverFps");
       const screensaverFpsValue = document.getElementById("screensaverFpsValue");
       const wledColorsSlider = document.getElementById("wledColors");
       const wledColorsValue = document.getElementById("wledColorsValue");
       const refreshBtn = document.getElementById("refreshBtn");
-      const saveBtn = document.getElementById("saveBtn");
       const toast = document.getElementById("toast");
+
+      function getSelectedPalette() {
+        const sel = paletteSwatches.querySelector(".selected");
+        return sel ? sel.dataset.palette : "aurora";
+      }
+
+      function selectPalette(name) {
+        paletteSwatches.querySelectorAll(".palette-pill").forEach((el) => {
+          el.classList.toggle("selected", el.dataset.palette === name);
+        });
+      }
 
       function rgbToHex(r, g, b) {
         return (
@@ -629,7 +660,7 @@
         setTimeout(() => (toast.className = "toast"), 2500);
       }
 
-      function updateUI(state, updateSettings = true) {
+      function updateUI(state) {
         currentState = state;
 
         // Always update status
@@ -657,8 +688,8 @@
         // Update entity name
         entityName.textContent = state.currentEntity || "—";
 
-        // Only update settings if no unsaved changes
-        if (updateSettings && !hasUnsavedChanges) {
+        // Sync controls (skip while a save is pending from user interaction)
+        if (!saveTimer) {
           brightnessSlider.value = state.brightness;
           brightnessValue.textContent = state.brightness + "%";
           transitionSelect.value = state.transition;
@@ -673,7 +704,7 @@
             );
           }
           screensaverEffectSelect.value = state.screensaverEffect || "plasma";
-          screensaverPaletteSelect.value = state.screensaverPalette || "aurora";
+          selectPalette(state.screensaverPalette || "aurora");
           screensaverFpsSlider.value = state.screensaverFps || 10;
           screensaverFpsValue.textContent = state.screensaverFps || 10;
           updateIdleModeUI();
@@ -682,88 +713,78 @@
         }
       }
 
-      async function fetchStatus() {
-        try {
-          const res = await fetch(API_BASE + "/api/status");
-          const state = await res.json();
-          updateUI(state, false); // Don't update settings during polling
-        } catch (err) {
-          statusText.textContent = "Disconnected";
-          statusDot.classList.remove("playing");
-        }
-      }
-
-      async function saveSettings() {
-        try {
-          const res = await fetch(API_BASE + "/api/settings", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              brightness: parseInt(brightnessSlider.value),
-              transition: transitionSelect.value,
-              transitionDuration: parseInt(durationSlider.value),
-              idleMode: idleModeSelect.value,
-              clockColor: hexToRgb(clockColorInput.value),
-              screensaverEffect: screensaverEffectSelect.value,
-              screensaverPalette: screensaverPaletteSelect.value,
-              screensaverFps: parseInt(screensaverFpsSlider.value),
-              wledColors: parseInt(wledColorsSlider.value),
-            }),
-          });
-          const data = await res.json();
-          if (data.success) {
-            hasUnsavedChanges = false;
-            showToast("Settings saved", "success");
-            updateUI(data.state, true);
+      function autoSave(delay = 0) {
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(async () => {
+          try {
+            await fetch(API_BASE + "/api/settings", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                brightness: parseInt(brightnessSlider.value),
+                transition: transitionSelect.value,
+                transitionDuration: parseInt(durationSlider.value),
+                idleMode: idleModeSelect.value,
+                clockColor: hexToRgb(clockColorInput.value),
+                screensaverEffect: screensaverEffectSelect.value,
+                screensaverPalette: getSelectedPalette(),
+                screensaverFps: parseInt(screensaverFpsSlider.value),
+                wledColors: parseInt(wledColorsSlider.value),
+              }),
+            });
+            showToast("Saved", "success");
+          } catch (err) {
+            showToast("Failed to save", "error");
           }
-        } catch (err) {
-          showToast("Failed to save settings", "error");
-        }
+          saveTimer = null;
+        }, delay);
       }
 
       async function refresh() {
         try {
           await fetch(API_BASE + "/api/refresh", { method: "POST" });
           showToast("Refreshing...");
-          setTimeout(fetchStatus, 500);
         } catch (err) {
           showToast("Failed to refresh", "error");
         }
       }
 
-      function markDirty() {
-        hasUnsavedChanges = true;
-      }
-
-      // Event listeners
+      // Event listeners — all auto-save (sliders debounced at 300ms)
       brightnessSlider.addEventListener("input", () => {
         brightnessValue.textContent = brightnessSlider.value + "%";
-        markDirty();
+        autoSave(300);
       });
 
       durationSlider.addEventListener("input", () => {
         durationValue.textContent = durationSlider.value + "ms";
-        markDirty();
+        autoSave(300);
       });
 
       wledColorsSlider.addEventListener("input", () => {
         wledColorsValue.textContent = wledColorsSlider.value;
-        markDirty();
+        autoSave(300);
       });
 
-      transitionSelect.addEventListener("change", markDirty);
-      idleModeSelect.addEventListener("change", () => {
-        updateIdleModeUI();
-        markDirty();
-      });
-      clockColorInput.addEventListener("input", markDirty);
-      screensaverEffectSelect.addEventListener("change", markDirty);
-      screensaverPaletteSelect.addEventListener("change", markDirty);
       screensaverFpsSlider.addEventListener("input", () => {
         screensaverFpsValue.textContent = screensaverFpsSlider.value;
-        markDirty();
+        autoSave(300);
       });
-      saveBtn.addEventListener("click", saveSettings);
+
+      transitionSelect.addEventListener("change", () => autoSave());
+      idleModeSelect.addEventListener("change", () => {
+        updateIdleModeUI();
+        autoSave();
+      });
+      clockColorInput.addEventListener("input", () => autoSave(300));
+      screensaverEffectSelect.addEventListener("change", () => autoSave());
+
+      paletteSwatches.addEventListener("click", (e) => {
+        const pill = e.target.closest(".palette-pill");
+        if (!pill) return;
+        selectPalette(pill.dataset.palette);
+        autoSave();
+      });
+
       refreshBtn.addEventListener("click", refresh);
 
       // WebSocket for live updates
@@ -779,7 +800,7 @@
           try {
             const msg = JSON.parse(event.data);
             if (msg.type === "state") {
-              updateUI(msg.state, !hasUnsavedChanges);
+              updateUI(msg.state);
             }
           } catch (err) {}
         });
@@ -797,7 +818,7 @@
         try {
           const res = await fetch(API_BASE + "/api/status");
           const state = await res.json();
-          updateUI(state, true);
+          updateUI(state);
         } catch (err) {
           statusText.textContent = "Disconnected";
         }
