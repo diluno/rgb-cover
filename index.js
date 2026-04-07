@@ -35,6 +35,7 @@ import {
   setScreensaverPalette,
   setScreensaverEffect,
   setScreensaverFps,
+  setCoverPixels,
   setOnStateChange as setScreensaverOnStateChange,
   setOverlayCallback as setScreensaverOverlayCallback,
 } from './lib/screensaver.js';
@@ -392,6 +393,7 @@ async function checkCover(_entities) {
     }
 
     currentPixels = newPixels;
+    setCoverPixels(newPixels);
 
     // Update WLED colors
     updateWLED(imageBuffer);
