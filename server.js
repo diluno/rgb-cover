@@ -17,15 +17,18 @@ let state = {
   wledUrls: [],
   wledColors: 5,
   entities: [],
-  showClock: true,
+  idleMode: 'clock',
   clockColor: { r: 120, g: 80, b: 200 },
   clockVisible: false,
+  screensaverPalette: 'aurora',
+  screensaverFps: 10,
+  screensaverVisible: false,
 };
 
 let callbacks = {
   onBrightnessChange: null,
   onTransitionChange: null,
-  onClockChange: null,
+  onIdleModeChange: null,
   onWledColorsChange: null,
   onRefresh: null,
 };
@@ -112,13 +115,26 @@ function handleApi(req, res) {
           state.transitionDuration = settings.transitionDuration;
           callbacks.onTransitionChange?.(state.transition, state.transitionDuration);
         }
-        if (settings.showClock !== undefined) {
-          state.showClock = settings.showClock;
-          callbacks.onClockChange?.(state.showClock, state.clockColor);
+        if (settings.idleMode !== undefined) {
+          state.idleMode = settings.idleMode;
         }
         if (settings.clockColor !== undefined) {
           state.clockColor = settings.clockColor;
-          callbacks.onClockChange?.(state.showClock, state.clockColor);
+        }
+        if (settings.screensaverPalette !== undefined) {
+          state.screensaverPalette = settings.screensaverPalette;
+        }
+        if (settings.screensaverFps !== undefined) {
+          state.screensaverFps = Math.max(5, Math.min(30, settings.screensaverFps));
+        }
+        // Fire callback if any idle-related setting changed
+        if (settings.idleMode !== undefined || settings.clockColor !== undefined ||
+            settings.screensaverPalette !== undefined || settings.screensaverFps !== undefined) {
+          callbacks.onIdleModeChange?.(state.idleMode, {
+            clockColor: state.clockColor,
+            screensaverPalette: state.screensaverPalette,
+            screensaverFps: state.screensaverFps,
+          });
         }
         if (settings.wledColors !== undefined) {
           state.wledColors = Math.max(1, Math.min(10, settings.wledColors));
