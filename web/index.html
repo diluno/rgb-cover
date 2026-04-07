@@ -517,6 +517,15 @@
         </div>
         <div id="screensaverOptions" style="display: none">
           <div class="control-row">
+            <span class="control-label">Effect</span>
+            <select id="screensaverEffect">
+              <option value="plasma">Plasma</option>
+              <option value="kaleidoscope">Kaleidoscope</option>
+              <option value="interference">Interference</option>
+              <option value="spiral">Spiral</option>
+            </select>
+          </div>
+          <div class="control-row">
             <span class="control-label">Palette</span>
             <select id="screensaverPalette">
               <option value="aurora">Aurora</option>
@@ -581,6 +590,7 @@
       const clockOptions = document.getElementById("clockOptions");
       const clockColorInput = document.getElementById("clockColor");
       const screensaverOptions = document.getElementById("screensaverOptions");
+      const screensaverEffectSelect = document.getElementById("screensaverEffect");
       const screensaverPaletteSelect = document.getElementById("screensaverPalette");
       const screensaverFpsSlider = document.getElementById("screensaverFps");
       const screensaverFpsValue = document.getElementById("screensaverFpsValue");
@@ -662,6 +672,7 @@
               state.clockColor.b,
             );
           }
+          screensaverEffectSelect.value = state.screensaverEffect || "plasma";
           screensaverPaletteSelect.value = state.screensaverPalette || "aurora";
           screensaverFpsSlider.value = state.screensaverFps || 10;
           screensaverFpsValue.textContent = state.screensaverFps || 10;
@@ -693,6 +704,7 @@
               transitionDuration: parseInt(durationSlider.value),
               idleMode: idleModeSelect.value,
               clockColor: hexToRgb(clockColorInput.value),
+              screensaverEffect: screensaverEffectSelect.value,
               screensaverPalette: screensaverPaletteSelect.value,
               screensaverFps: parseInt(screensaverFpsSlider.value),
               wledColors: parseInt(wledColorsSlider.value),
@@ -745,6 +757,7 @@
         markDirty();
       });
       clockColorInput.addEventListener("input", markDirty);
+      screensaverEffectSelect.addEventListener("change", markDirty);
       screensaverPaletteSelect.addEventListener("change", markDirty);
       screensaverFpsSlider.addEventListener("input", () => {
         screensaverFpsValue.textContent = screensaverFpsSlider.value;

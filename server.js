@@ -20,6 +20,7 @@ let state = {
   idleMode: 'clock',
   clockColor: { r: 120, g: 80, b: 200 },
   clockVisible: false,
+  screensaverEffect: 'plasma',
   screensaverPalette: 'aurora',
   screensaverFps: 10,
   screensaverVisible: false,
@@ -121,6 +122,9 @@ function handleApi(req, res) {
         if (settings.clockColor !== undefined) {
           state.clockColor = settings.clockColor;
         }
+        if (settings.screensaverEffect !== undefined) {
+          state.screensaverEffect = settings.screensaverEffect;
+        }
         if (settings.screensaverPalette !== undefined) {
           state.screensaverPalette = settings.screensaverPalette;
         }
@@ -129,9 +133,10 @@ function handleApi(req, res) {
         }
         // Fire callback if any idle-related setting changed
         if (settings.idleMode !== undefined || settings.clockColor !== undefined ||
-            settings.screensaverPalette !== undefined || settings.screensaverFps !== undefined) {
+            settings.screensaverEffect !== undefined || settings.screensaverPalette !== undefined || settings.screensaverFps !== undefined) {
           callbacks.onIdleModeChange?.(state.idleMode, {
             clockColor: state.clockColor,
+            screensaverEffect: state.screensaverEffect,
             screensaverPalette: state.screensaverPalette,
             screensaverFps: state.screensaverFps,
           });
