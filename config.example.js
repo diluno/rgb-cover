@@ -27,9 +27,12 @@ export default {
   // Web interface port
   webPort: 3000,
   
-  // Clock settings (shown when nothing is playing)
-  showClock: true,
+  // Idle screen settings (shown when nothing is playing)
+  // Options: 'clock', 'screensaver', 'off'
+  idleMode: 'clock',
   clockColor: { r: 120, g: 80, b: 200 }, // Purple
+  screensaverPalette: 'aurora', // aurora, ember, ocean, sunset, forest
+  screensaverFps: 10, // 5-30
   
   // CO2 monitoring - shows red dot when above threshold
   co2Entity: 'sensor.indoor_carbon_dioxide',
