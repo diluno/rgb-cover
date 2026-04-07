@@ -651,7 +651,33 @@
     saveBtn.addEventListener('click', saveSettings);
     refreshBtn.addEventListener('click', refresh);
 
-    // Initial fetch with settings update
+    // WebSocket for live updates
+    function connectWebSocket() {
+      const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const ws = new WebSocket(`${wsProto}//${location.host}`);
+
+      ws.addEventListener('open', () => {
+        statusText.textContent = 'Connected';
+      });
+
+      ws.addEventListener('message', (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'state') {
+            updateUI(msg.state, !hasUnsavedChanges);
+          }
+        } catch (err) {}
+      });
+
+      ws.addEventListener('close', () => {
+        statusText.textContent = 'Disconnected';
+        statusDot.classList.remove('playing');
+        // Reconnect after 3s
+        setTimeout(connectWebSocket, 3000);
+      });
+    }
+
+    // Initial fetch for settings, then switch to WebSocket
     (async () => {
       try {
         const res = await fetch(API_BASE + '/api/status');
@@ -660,10 +686,8 @@
       } catch (err) {
         statusText.textContent = 'Disconnected';
       }
+      connectWebSocket();
     })();
-
-    // Polling without settings update
-    setInterval(fetchStatus, 3000);
   </script>
 </body>
 </html>

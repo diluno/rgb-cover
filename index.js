@@ -53,6 +53,8 @@ let currentPixels = null;
 let debounceTimer = null;
 let isTransitioning = false;
 let lastEntities = null;
+let turnOffTimer = null;
+let pendingCoverCheck = false;
 let currentCo2 = null;
 let co2High = false;
 
@@ -210,7 +212,11 @@ function syncWebState() {
 // ==================== DISPLAY CONTROL ====================
 
 function turnOff() {
-  setTimeout(async () => {
+  clearTimeout(turnOffTimer);
+  turnOffTimer = setTimeout(async () => {
+    // Abort if something started playing during the delay
+    if (currentCover) return;
+
     if (getMatrix()) {
       await fadeOut(currentPixels, 300);
       clearMatrix();
@@ -218,12 +224,12 @@ function turnOff() {
     currentPixels = null;
     currentEntity = null;
     syncWebState();
-    
+
     // Start clock when idle
     if (settings.showClock) {
       startClock();
     }
-    
+
     // Turn off WLED
     config.wledUrls?.forEach((url) => {
       fetch(`${url}/win&T=0`).catch(() => {});
@@ -249,13 +255,18 @@ async function updateWLED(imageBuffer) {
 
     const colors = await ColorDieb(imageData, MATRIX_SIZE, settings.wledColors);
     const colorsRGB = shuffleArray(colors.map((c) => hex2rgb(c)));
-    const col1 = colorsRGB[0];
-    const col2 = colorsRGB[1];
+
+    // Build WLED JSON API payload with full palette
+    const seg = {
+      col: colorsRGB.slice(0, 3).map(c => [c.r, c.g, c.b]),
+    };
 
     config.wledUrls.forEach((wledUrl) => {
-      fetch(
-        `${wledUrl}/win&T=1&R=${col1.r}&G=${col1.g}&B=${col1.b}&R2=${col2.r}&G2=${col2.g}&B2=${col2.b}`
-      ).catch(() => {});
+      fetch(`${wledUrl}/json/state`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ on: true, seg: [seg] }),
+      }).catch(() => {});
     });
   } catch (err) {
     console.error('WLED update failed:', err.message);
@@ -266,11 +277,14 @@ async function updateWLED(imageBuffer) {
 
 async function checkCover(_entities) {
   lastEntities = _entities;
-  
+
   // Check CO2 level
   checkCo2(_entities);
-  
-  if (isTransitioning) return;
+
+  if (isTransitioning) {
+    pendingCoverCheck = true;
+    return;
+  }
 
   let url = null;
   let activeEntity = null;
@@ -332,7 +346,7 @@ async function checkCover(_entities) {
       drawCo2Indicator();
       matrixSync();
     }
-    
+
     currentPixels = newPixels;
 
     // Update WLED colors
@@ -340,6 +354,12 @@ async function checkCover(_entities) {
 
   } catch (err) {
     console.error(`Error processing cover: ${err.message}`);
+  }
+
+  // Process any cover change that arrived during the transition
+  if (pendingCoverCheck && lastEntities) {
+    pendingCoverCheck = false;
+    checkCover(lastEntities);
   }
 }
 
@@ -440,8 +460,25 @@ startServer(config.webPort || 3000);
 
 const debouncedCheckCover = debounce(checkCover, 500);
 
-const conn = await homeassistant.connectSocket();
-subscribeEntities(conn, debouncedCheckCover);
+async function connectHA() {
+  try {
+    const conn = await homeassistant.connectSocket();
+    console.log('Connected to Home Assistant');
+
+    conn.addEventListener('disconnected', () => {
+      console.warn('Home Assistant disconnected, reconnecting in 5s...');
+      setTimeout(connectHA, 5000);
+    });
+
+    subscribeEntities(conn, debouncedCheckCover);
+  } catch (err) {
+    console.error(`Failed to connect to Home Assistant: ${err.message}`);
+    console.log('Retrying in 10s...');
+    setTimeout(connectHA, 10000);
+  }
+}
+
+await connectHA();
 
 // Start clock on startup
 if (settings.showClock) {
