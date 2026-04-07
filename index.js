@@ -28,6 +28,15 @@ import {
   setOverlayCallback,
   isClockVisible 
 } from './lib/clock.js';
+import {
+  startScreensaver,
+  stopScreensaver,
+  isScreensaverVisible,
+  setScreensaverPalette,
+  setScreensaverFps,
+  setOnStateChange as setScreensaverOnStateChange,
+  setOverlayCallback as setScreensaverOverlayCallback,
+} from './lib/screensaver.js';
 import config from './config.js';
 
 // ==================== SETUP ====================
@@ -65,9 +74,11 @@ function getDefaultSettings() {
     brightness: config.brightness || 85,
     transition: config.transition || 'crossfade',
     transitionDuration: config.transitionDuration || 500,
-    showClock: config.showClock !== false,
+    idleMode: config.showClock !== false ? 'clock' : 'off',
     clockColor: config.clockColor || { r: 120, g: 80, b: 200 },
     wledColors: config.wledColors || 5,
+    screensaverPalette: 'aurora',
+    screensaverFps: 10,
   };
 }
 
@@ -76,9 +87,15 @@ function loadSettings() {
     if (fs.existsSync(SETTINGS_FILE)) {
       const data = fs.readFileSync(SETTINGS_FILE, 'utf-8');
       const saved = JSON.parse(data);
-      console.log('Loaded settings from settings.json');
       // Merge with defaults in case new settings were added
-      return { ...getDefaultSettings(), ...saved };
+      const merged = { ...getDefaultSettings(), ...saved };
+      // Migrate showClock -> idleMode
+      if (saved.showClock !== undefined && saved.idleMode === undefined) {
+        merged.idleMode = saved.showClock ? 'clock' : 'off';
+      }
+      delete merged.showClock;
+      console.log('Loaded settings from settings.json');
+      return merged;
     }
   } catch (err) {
     console.error('Failed to load settings.json:', err.message);
@@ -127,6 +144,12 @@ setClockColor(settings.clockColor);
 setOnStateChange(syncWebState);
 setOverlayCallback(drawCo2Indicator);
 
+// Initialize screensaver
+setScreensaverPalette(settings.screensaverPalette);
+setScreensaverFps(settings.screensaverFps);
+setScreensaverOnStateChange(syncWebState);
+setScreensaverOverlayCallback(drawCo2Indicator);
+
 // ==================== HELPERS ====================
 
 function debounce(fn, delay) {
@@ -134,6 +157,20 @@ function debounce(fn, delay) {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => fn(...args), delay);
   };
+}
+
+function stopIdleMode() {
+  if (isClockVisible()) stopClock();
+  if (isScreensaverVisible()) stopScreensaver();
+}
+
+function startIdleMode() {
+  stopIdleMode();
+  if (settings.idleMode === 'clock') {
+    startClock();
+  } else if (settings.idleMode === 'screensaver') {
+    startScreensaver();
+  }
 }
 
 // Draw red CO2 warning dot in top-right corner
@@ -178,10 +215,12 @@ function checkCo2(entities) {
     console.log(`CO2: ${value} ppm - ${co2High ? 'HIGH!' : 'OK'}`);
     // Don't redraw during transitions - indicator will be drawn after
     if (isTransitioning) return;
-    
+
     // Redraw current display with updated indicator
     if (isClockVisible()) {
       renderClock();
+    } else if (isScreensaverVisible()) {
+      // Screensaver handles its own overlay via callback
     } else if (currentPixels && getMatrix()) {
       drawCo2Indicator();
       matrixSync();
@@ -200,9 +239,12 @@ function syncWebState() {
     wledUrls: config.wledUrls,
     wledColors: settings.wledColors,
     entities: mediaEntities,
-    showClock: settings.showClock,
+    idleMode: settings.idleMode,
     clockColor: settings.clockColor,
     clockVisible: isClockVisible(),
+    screensaverPalette: settings.screensaverPalette,
+    screensaverFps: settings.screensaverFps,
+    screensaverVisible: isScreensaverVisible(),
     co2: currentCo2,
     co2High,
     co2Threshold: CO2_THRESHOLD,
@@ -225,10 +267,8 @@ function turnOff() {
     currentEntity = null;
     syncWebState();
 
-    // Start clock when idle
-    if (settings.showClock) {
-      startClock();
-    }
+    // Start idle mode
+    startIdleMode();
 
     // Turn off WLED
     config.wledUrls?.forEach((url) => {
@@ -311,9 +351,9 @@ async function checkCover(_entities) {
     return;
   }
 
-  // Stop clock when music starts
-  if (isClockVisible()) {
-    stopClock();
+  // Stop idle mode when music starts
+  if (isClockVisible() || isScreensaverVisible()) {
+    stopIdleMode();
   }
 
   // Same cover, skip
@@ -405,26 +445,23 @@ setCallbacks({
     console.log(`Transition changed to ${type} (${duration}ms)`);
   },
   
-  onClockChange: (showClock, clockColor) => {
-    settings.showClock = showClock;
-    settings.clockColor = clockColor;
-    setClockColor(clockColor);
+  onIdleModeChange: (mode, options) => {
+    settings.idleMode = mode;
+    settings.clockColor = options.clockColor;
+    settings.screensaverPalette = options.screensaverPalette;
+    settings.screensaverFps = options.screensaverFps;
+    setClockColor(options.clockColor);
+    setScreensaverPalette(options.screensaverPalette);
+    setScreensaverFps(options.screensaverFps);
     saveSettings();
-    
-    // If clock should be shown and nothing is playing, start it
-    if (showClock && !currentCover && !isClockVisible()) {
-      startClock();
+
+    // Stop whatever is running and start the new mode if idle
+    if (!currentCover) {
+      startIdleMode();
+    } else {
+      stopIdleMode();
     }
-    // If clock should be hidden, stop it
-    if (!showClock && isClockVisible()) {
-      stopClock();
-      clearMatrix();
-    }
-    // If clock is visible, re-render with new color
-    if (isClockVisible()) {
-      renderClock();
-    }
-    console.log(`Clock: ${showClock ? 'on' : 'off'}, color: rgb(${clockColor.r},${clockColor.g},${clockColor.b})`);
+    console.log(`Idle mode: ${mode}`);
   },
   
   onWledColorsChange: (wledColors) => {
@@ -447,6 +484,7 @@ function cleanup() {
   console.log('\nShutting down...');
   clearTimeout(debounceTimer);
   stopClock();
+  stopScreensaver();
   clearMatrix();
   process.exit(0);
 }
@@ -480,10 +518,8 @@ async function connectHA() {
 
 await connectHA();
 
-// Start clock on startup
-if (settings.showClock) {
-  startClock();
-}
+// Start idle mode on startup
+startIdleMode();
 
 console.log('RGB Cover started!');
 console.log(`Transition: ${settings.transition}, Duration: ${settings.transitionDuration}ms`);
