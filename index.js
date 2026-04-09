@@ -39,6 +39,7 @@ import {
   setOnStateChange as setScreensaverOnStateChange,
   setOverlayCallback as setScreensaverOverlayCallback,
 } from './lib/screensaver.js';
+import { showTrackInfo, renderOverlay, isOverlayActive, stopOverlay, setOverlayRenderCallback } from './lib/text-overlay.js';
 import config from './config.js';
 
 // ==================== SETUP ====================
@@ -153,6 +154,25 @@ setScreensaverPalette(settings.screensaverPalette);
 setScreensaverFps(settings.screensaverFps);
 setScreensaverOnStateChange(syncWebState);
 setScreensaverOverlayCallback(drawCo2Indicator);
+
+// Initialize text overlay - redraws current cover with overlay on top
+setOverlayRenderCallback(() => {
+  if (!currentPixels || !getMatrix()) return;
+  const matrix = getMatrix();
+  for (let y = 0; y < MATRIX_SIZE; y++) {
+    for (let x = 0; x < MATRIX_SIZE; x++) {
+      const i = (y * MATRIX_SIZE + x) * 4;
+      matrix.fgColor({
+        r: currentPixels.data[i],
+        g: currentPixels.data[i + 1],
+        b: currentPixels.data[i + 2],
+      }).setPixel(x, y);
+    }
+  }
+  drawCo2Indicator();
+  renderOverlay();
+  matrixSync();
+});
 
 // ==================== HELPERS ====================
 
@@ -395,6 +415,15 @@ async function checkCover(_entities) {
     currentPixels = newPixels;
     setCoverPixels(newPixels);
 
+    // Show track info overlay
+    const activeEntityData = _entities[activeEntity];
+    if (activeEntityData?.attributes) {
+      const { media_artist, media_title } = activeEntityData.attributes;
+      if (media_artist || media_title) {
+        showTrackInfo(media_artist, media_title);
+      }
+    }
+
     // Update WLED colors
     updateWLED(imageBuffer);
 
@@ -493,6 +522,7 @@ function cleanup() {
   clearTimeout(debounceTimer);
   stopClock();
   stopScreensaver();
+  stopOverlay();
   clearMatrix();
   process.exit(0);
 }
