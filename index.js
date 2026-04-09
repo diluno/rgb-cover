@@ -157,7 +157,7 @@ setScreensaverOverlayCallback(drawCo2Indicator);
 
 // Initialize text overlay - redraws current cover with overlay on top
 setOverlayRenderCallback(() => {
-  if (!currentPixels || !getMatrix()) return;
+  if (!currentPixels || !getMatrix() || isTransitioning) return;
   const matrix = getMatrix();
   for (let y = 0; y < MATRIX_SIZE; y++) {
     for (let x = 0; x < MATRIX_SIZE; x++) {
@@ -401,6 +401,7 @@ async function checkCover(_entities) {
     const newPixels = await getPixelsFromBuffer(imageBuffer);
 
     if (getMatrix()) {
+      stopOverlay();
       isTransitioning = true;
       try {
         await transition(currentPixels, newPixels, settings.transition, settings.transitionDuration);
