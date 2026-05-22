@@ -1,0 +1,52 @@
+<h2>Web UI Improvement Ideas</h2>
+<p class="subtitle">Select the areas you'd like to explore. Multi-select is fine.</p>
+
+<div class="options" data-multiselect>
+  <div class="option" data-choice="now-playing" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Richer Now Playing</h3>
+      <p>Show track title, artist, and progress from HA media player attributes. The entity has this data - we're just not using it. Turn the cover section into a proper now-playing display.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="live-preview" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Live Matrix Preview</h3>
+      <p>Render a tiny 64x64 pixel preview of what's actually on the LED matrix right now - including screensaver animations. WebSocket already pushes state; we'd add pixel data.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="palette-preview" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Palette Color Swatches</h3>
+      <p>Show the actual colors of each palette as gradient swatches next to the dropdown, so you can see what "Aurora" or "Ember" looks like before selecting.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="auto-save" onclick="toggleSelect(this)">
+    <div class="letter">D</div>
+    <div class="content">
+      <h3>Auto-Save Settings</h3>
+      <p>Remove the explicit Save button. Apply changes immediately as you adjust them (brightness already works this way on the backend). Debounce rapid changes. Show a subtle "saved" indicator.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="co2-display" onclick="toggleSelect(this)">
+    <div class="letter">E</div>
+    <div class="content">
+      <h3>CO2 Status in UI</h3>
+      <p>The data is already being sent via WebSocket but not displayed. Show current CO2 value with a color indicator (green/amber/red) in the header area near the status badge.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="adaptive-accent" onclick="toggleSelect(this)">
+    <div class="letter">F</div>
+    <div class="content">
+      <h3>Album-Adaptive Accent Color</h3>
+      <p>When music is playing, tint the web UI's accent color to match the dominant color of the album art. The WLED color extraction already does this - reuse it for the UI.</p>
+    </div>
+  </div>
+</div>

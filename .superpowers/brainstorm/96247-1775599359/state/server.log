@@ -1,0 +1,8 @@
+{"type":"server-started","port":49224,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:49224","screen_dir":"/Users/sam/Documents/_projects/rgb-cover/.superpowers/brainstorm/96247-1775599359/content","state_dir":"/Users/sam/Documents/_projects/rgb-cover/.superpowers/brainstorm/96247-1775599359/state"}
+{"type":"screen-added","file":"/Users/sam/Documents/_projects/rgb-cover/.superpowers/brainstorm/96247-1775599359/content/improvements-overview.html"}
+{"source":"user-event","type":"click","text":"D\n    \n      Auto-Save Settings\n      Remove the explicit Save button. Apply changes immediately as you adjust them (brightness already works this way on the backend). Debounce rapid changes. Show a subtle \"saved\" indicator.","choice":"auto-save","id":null,"timestamp":1775599438551}
+{"source":"user-event","type":"click","text":"C\n    \n      Palette Color Swatches\n      Show the actual colors of each palette as gradient swatches next to the dropdown, so you can see what \"Aurora\" or \"Ember\" looks like before selecting.","choice":"palette-preview","id":null,"timestamp":1775599516272}
+{"type":"screen-added","file":"/Users/sam/Documents/_projects/rgb-cover/.superpowers/brainstorm/96247-1775599359/content/palette-picker.html"}
+{"source":"user-event","type":"click","text":"B\n    \n      Compact Pills\n      Small gradient pills in a horizontal row, name appears on hover/select","choice":"compact","id":null,"timestamp":1775599589734}
+{"type":"screen-added","file":"/Users/sam/Documents/_projects/rgb-cover/.superpowers/brainstorm/96247-1775599359/content/waiting.html"}
+{"type":"server-stopped","reason":"owner process exited"}

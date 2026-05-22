@@ -1,0 +1,49 @@
+<h2>Palette Picker Style</h2>
+<p class="subtitle">Which swatch style feels right?</p>
+
+<div class="options">
+  <div class="option" data-choice="stacked" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Stacked Swatches</h3>
+      <p>Full-width gradient bars stacked vertically with label on the left</p>
+      <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 12px; color: #8888a0; width: 50px;">Aurora</span>
+          <div style="flex: 1; height: 28px; border-radius: 6px; border: 2px solid #7c3aed; background: linear-gradient(to right, rgb(20,0,80), rgb(0,180,180), rgb(0,200,80), rgb(120,0,200));"></div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 12px; color: #8888a0; width: 50px;">Ember</span>
+          <div style="flex: 1; height: 28px; border-radius: 6px; border: 2px solid transparent; background: linear-gradient(to right, rgb(0,0,0), rgb(150,20,0), rgb(255,120,0), rgb(255,200,50));"></div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 12px; color: #8888a0; width: 50px;">Ocean</span>
+          <div style="flex: 1; height: 28px; border-radius: 6px; border: 2px solid transparent; background: linear-gradient(to right, rgb(0,10,40), rgb(0,60,180), rgb(0,200,220), rgb(200,220,255));"></div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 12px; color: #8888a0; width: 50px;">Sunset</span>
+          <div style="flex: 1; height: 28px; border-radius: 6px; border: 2px solid transparent; background: linear-gradient(to right, rgb(60,0,120), rgb(200,0,100), rgb(255,120,0), rgb(255,200,80));"></div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 12px; color: #8888a0; width: 50px;">Forest</span>
+          <div style="flex: 1; height: 28px; border-radius: 6px; border: 2px solid transparent; background: linear-gradient(to right, rgb(0,10,0), rgb(0,80,20), rgb(0,180,80), rgb(120,220,60));"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="compact" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Compact Pills</h3>
+      <p>Small gradient pills in a horizontal row, name appears on hover/select</p>
+      <div style="margin-top: 12px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+        <div style="width: 56px; height: 28px; border-radius: 14px; border: 2px solid #7c3aed; background: linear-gradient(to right, rgb(20,0,80), rgb(0,180,180), rgb(0,200,80), rgb(120,0,200)); cursor: pointer;"></div>
+        <div style="width: 56px; height: 28px; border-radius: 14px; border: 2px solid transparent; background: linear-gradient(to right, rgb(0,0,0), rgb(150,20,0), rgb(255,120,0), rgb(255,200,50)); cursor: pointer;"></div>
+        <div style="width: 56px; height: 28px; border-radius: 14px; border: 2px solid transparent; background: linear-gradient(to right, rgb(0,10,40), rgb(0,60,180), rgb(0,200,220), rgb(200,220,255)); cursor: pointer;"></div>
+        <div style="width: 56px; height: 28px; border-radius: 14px; border: 2px solid transparent; background: linear-gradient(to right, rgb(60,0,120), rgb(200,0,100), rgb(255,120,0), rgb(255,200,80)); cursor: pointer;"></div>
+        <div style="width: 56px; height: 28px; border-radius: 14px; border: 2px solid transparent; background: linear-gradient(to right, rgb(0,10,0), rgb(0,80,20), rgb(0,180,80), rgb(120,220,60)); cursor: pointer;"></div>
+      </div>
+    </div>
+  </div>
+</div>

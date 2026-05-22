@@ -26,12 +26,16 @@ export default {
   
   // Web interface port
   webPort: 3000,
+
+  // Runtime settings changed in the web UI are saved here.
+  // Relative paths resolve from the project directory. settings.json is ignored by git.
+  settingsFile: 'settings.json',
   
   // Idle screen settings (shown when nothing is playing)
   // Options: 'clock', 'screensaver', 'off'
   idleMode: 'clock',
   clockColor: { r: 120, g: 80, b: 200 }, // Purple
-  clockStyle: 'classic', // classic, sevenSegment, rounded
+  clockStyle: 'classic', // classic, sevenSegment, rounded, tallCondensed
   screensaverPalette: 'aurora', // aurora, ember, ocean, sunset, forest
   screensaverFps: 10, // 5-30
   

@@ -49,8 +49,13 @@ global.WebSocket = ws;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Use /var/tmp for settings (persists across reboots, always writable)
-const SETTINGS_FILE = '/var/tmp/rgb-cover-settings.json';
+const SETTINGS_FILE = config.settingsFile
+  ? path.resolve(__dirname, config.settingsFile)
+  : path.join(__dirname, 'settings.json');
+const LEGACY_SETTINGS_FILES = [
+  '/var/tmp/rgb-cover-settings.json',
+  '/tmp/rgb-cover-settings.json',
+];
 console.log(`Settings file: ${SETTINGS_FILE}`);
 
 const homeassistant = new HomeAssistant();
@@ -89,9 +94,13 @@ function getDefaultSettings() {
 }
 
 function loadSettings() {
-  try {
-    if (fs.existsSync(SETTINGS_FILE)) {
-      const data = fs.readFileSync(SETTINGS_FILE, 'utf-8');
+  const settingsFiles = [SETTINGS_FILE, ...LEGACY_SETTINGS_FILES];
+
+  for (const file of settingsFiles) {
+    try {
+      if (!fs.existsSync(file)) continue;
+
+      const data = fs.readFileSync(file, 'utf-8');
       const saved = JSON.parse(data);
       // Merge with defaults in case new settings were added
       const merged = { ...getDefaultSettings(), ...saved };
@@ -100,34 +109,46 @@ function loadSettings() {
         merged.idleMode = saved.showClock ? 'clock' : 'off';
       }
       delete merged.showClock;
-      console.log('Loaded settings from settings.json');
+      console.log(`Loaded settings from ${file}`);
       return merged;
+    } catch (err) {
+      console.error(`Failed to load settings from ${file}:`, err.message);
     }
-  } catch (err) {
-    console.error('Failed to load settings.json:', err.message);
   }
+
   console.log('Using default settings from config.js');
   return getDefaultSettings();
+}
+
+function ensureSettingsDirectory() {
+  fs.mkdirSync(path.dirname(SETTINGS_FILE), { recursive: true });
 }
 
 function saveSettings() {
   // Use async write to avoid issues with native module interactions
   const data = JSON.stringify(settings, null, 2);
-  fs.writeFile(SETTINGS_FILE, data, (err) => {
-    if (err) {
-      console.error(`Failed to save settings to ${SETTINGS_FILE}:`, err.message);
-      // Try alternative location as last resort
-      const altPath = '/tmp/rgb-cover-settings.json';
-      fs.writeFile(altPath, data, (err2) => {
-        if (err2) {
-          console.error(`Also failed to save to ${altPath}:`, err2.message);
-        } else {
-          console.log(`Settings saved to ${altPath} (fallback)`);
-        }
-      });
-    } else {
-      console.log(`Settings saved to ${SETTINGS_FILE}`);
+  fs.mkdir(path.dirname(SETTINGS_FILE), { recursive: true }, (mkdirErr) => {
+    if (mkdirErr) {
+      console.error(`Failed to create settings directory for ${SETTINGS_FILE}:`, mkdirErr.message);
+      return;
     }
+
+    fs.writeFile(SETTINGS_FILE, data, (err) => {
+      if (err) {
+        console.error(`Failed to save settings to ${SETTINGS_FILE}:`, err.message);
+        // Try alternative location as last resort
+        const altPath = '/tmp/rgb-cover-settings.json';
+        fs.writeFile(altPath, data, (err2) => {
+          if (err2) {
+            console.error(`Also failed to save to ${altPath}:`, err2.message);
+          } else {
+            console.log(`Settings saved to ${altPath} (fallback)`);
+          }
+        });
+      } else {
+        console.log(`Settings saved to ${SETTINGS_FILE}`);
+      }
+    });
   });
 }
 
@@ -136,6 +157,7 @@ let settings = loadSettings();
 
 // Save settings on startup to create file if it doesn't exist (sync for init)
 try {
+  ensureSettingsDirectory();
   fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
   console.log(`Settings saved to ${SETTINGS_FILE}`);
 } catch (err) {

@@ -540,6 +540,7 @@
               <option value="classic">Classic</option>
               <option value="sevenSegment">Seven Segment</option>
               <option value="rounded">Rounded</option>
+              <option value="tallCondensed">Tall Condensed</option>
             </select>
           </div>
           <div class="control-row">
@@ -791,6 +792,7 @@
         autoSave();
       });
       clockColorInput.addEventListener("input", () => autoSave(300));
+      clockColorInput.addEventListener("change", () => autoSave());
       clockStyleSelect.addEventListener("change", () => autoSave());
       screensaverEffectSelect.addEventListener("change", () => autoSave());
 
