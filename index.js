@@ -24,6 +24,7 @@ import {
   stopClock, 
   renderClock, 
   setClockColor, 
+  setClockStyle,
   setOnStateChange,
   setOverlayCallback,
   isClockVisible 
@@ -79,6 +80,7 @@ function getDefaultSettings() {
     transitionDuration: config.transitionDuration || 500,
     idleMode: config.showClock !== false ? 'clock' : 'off',
     clockColor: config.clockColor || { r: 120, g: 80, b: 200 },
+    clockStyle: config.clockStyle || 'classic',
     wledColors: config.wledColors || 5,
     screensaverEffect: 'plasma',
     screensaverPalette: 'aurora',
@@ -145,6 +147,7 @@ initMatrix(settings.brightness);
 
 // Initialize clock
 setClockColor(settings.clockColor);
+setClockStyle(settings.clockStyle);
 setOnStateChange(syncWebState);
 setOverlayCallback(drawCo2Indicator);
 
@@ -265,6 +268,7 @@ function syncWebState() {
     entities: mediaEntities,
     idleMode: settings.idleMode,
     clockColor: settings.clockColor,
+    clockStyle: settings.clockStyle,
     clockVisible: isClockVisible(),
     screensaverEffect: settings.screensaverEffect,
     screensaverPalette: settings.screensaverPalette,
@@ -484,10 +488,12 @@ setCallbacks({
   onIdleModeChange: (mode, options) => {
     settings.idleMode = mode;
     settings.clockColor = options.clockColor;
+    settings.clockStyle = options.clockStyle;
     settings.screensaverEffect = options.screensaverEffect;
     settings.screensaverPalette = options.screensaverPalette;
     settings.screensaverFps = options.screensaverFps;
     setClockColor(options.clockColor);
+    setClockStyle(options.clockStyle);
     setScreensaverEffect(options.screensaverEffect);
     setScreensaverPalette(options.screensaverPalette);
     setScreensaverFps(options.screensaverFps);

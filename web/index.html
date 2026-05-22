@@ -535,6 +535,14 @@
         </div>
         <div id="clockOptions">
           <div class="control-row">
+            <span class="control-label">Style</span>
+            <select id="clockStyle">
+              <option value="classic">Classic</option>
+              <option value="sevenSegment">Seven Segment</option>
+              <option value="rounded">Rounded</option>
+            </select>
+          </div>
+          <div class="control-row">
             <span class="control-label">Color</span>
             <input type="color" id="clockColor" value="#7850c8" />
           </div>
@@ -613,6 +621,7 @@
       const durationValue = document.getElementById("durationValue");
       const idleModeSelect = document.getElementById("idleMode");
       const clockOptions = document.getElementById("clockOptions");
+      const clockStyleSelect = document.getElementById("clockStyle");
       const clockColorInput = document.getElementById("clockColor");
       const screensaverOptions = document.getElementById("screensaverOptions");
       const screensaverEffectSelect = document.getElementById("screensaverEffect");
@@ -700,6 +709,7 @@
           durationSlider.value = state.transitionDuration;
           durationValue.textContent = state.transitionDuration + "ms";
           idleModeSelect.value = state.idleMode || "clock";
+          clockStyleSelect.value = state.clockStyle || "classic";
           if (state.clockColor) {
             clockColorInput.value = rgbToHex(
               state.clockColor.r,
@@ -729,6 +739,7 @@
                 transition: transitionSelect.value,
                 transitionDuration: parseInt(durationSlider.value),
                 idleMode: idleModeSelect.value,
+                clockStyle: clockStyleSelect.value,
                 clockColor: hexToRgb(clockColorInput.value),
                 screensaverEffect: screensaverEffectSelect.value,
                 screensaverPalette: getSelectedPalette(),
@@ -780,6 +791,7 @@
         autoSave();
       });
       clockColorInput.addEventListener("input", () => autoSave(300));
+      clockStyleSelect.addEventListener("change", () => autoSave());
       screensaverEffectSelect.addEventListener("change", () => autoSave());
 
       paletteSwatches.addEventListener("click", (e) => {
