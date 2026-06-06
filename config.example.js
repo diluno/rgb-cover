@@ -23,7 +23,10 @@ export default {
   // Options: 'crossfade', 'slideLeft', 'slideRight', 'slideUp', 'slideDown', 'dissolve'
   transition: 'crossfade',
   transitionDuration: 500, // milliseconds
-  
+
+  // Scroll the song title (artist - title) across the cover when it changes
+  showSongTitle: true,
+
   // Web interface port
   webPort: 3000,
 

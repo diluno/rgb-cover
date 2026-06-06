@@ -524,6 +524,17 @@
       </div>
 
       <div class="card">
+        <div class="card-title">Track Info</div>
+        <div class="control-row">
+          <span class="control-label">Song Title Overlay</span>
+          <label class="toggle">
+            <input type="checkbox" id="showSongTitle" checked />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="card">
         <div class="card-title">Idle Screen</div>
         <div class="control-row">
           <span class="control-label">Mode</span>
@@ -631,6 +642,7 @@
       const screensaverFpsValue = document.getElementById("screensaverFpsValue");
       const wledColorsSlider = document.getElementById("wledColors");
       const wledColorsValue = document.getElementById("wledColorsValue");
+      const showSongTitleToggle = document.getElementById("showSongTitle");
       const refreshBtn = document.getElementById("refreshBtn");
       const toast = document.getElementById("toast");
 
@@ -725,6 +737,7 @@
           updateIdleModeUI();
           wledColorsSlider.value = state.wledColors || 5;
           wledColorsValue.textContent = state.wledColors || 5;
+          showSongTitleToggle.checked = state.showSongTitle !== false;
         }
       }
 
@@ -746,6 +759,7 @@
                 screensaverPalette: getSelectedPalette(),
                 screensaverFps: parseInt(screensaverFpsSlider.value),
                 wledColors: parseInt(wledColorsSlider.value),
+                showSongTitle: showSongTitleToggle.checked,
               }),
             });
             showToast("Saved", "success");
@@ -795,6 +809,7 @@
       clockColorInput.addEventListener("change", () => autoSave());
       clockStyleSelect.addEventListener("change", () => autoSave());
       screensaverEffectSelect.addEventListener("change", () => autoSave());
+      showSongTitleToggle.addEventListener("change", () => autoSave());
 
       paletteSwatches.addEventListener("click", (e) => {
         const pill = e.target.closest(".palette-pill");

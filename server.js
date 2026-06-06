@@ -25,6 +25,7 @@ let state = {
   screensaverPalette: 'aurora',
   screensaverFps: 10,
   screensaverVisible: false,
+  showSongTitle: true,
 };
 
 let callbacks = {
@@ -32,6 +33,7 @@ let callbacks = {
   onTransitionChange: null,
   onIdleModeChange: null,
   onWledColorsChange: null,
+  onShowSongTitleChange: null,
   onRefresh: null,
 };
 
@@ -149,6 +151,10 @@ function handleApi(req, res) {
         if (settings.wledColors !== undefined) {
           state.wledColors = Math.max(1, Math.min(10, settings.wledColors));
           callbacks.onWledColorsChange?.(state.wledColors);
+        }
+        if (settings.showSongTitle !== undefined) {
+          state.showSongTitle = !!settings.showSongTitle;
+          callbacks.onShowSongTitleChange?.(state.showSongTitle);
         }
 
         broadcast({ type: 'state', state });

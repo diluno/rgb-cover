@@ -90,6 +90,7 @@ function getDefaultSettings() {
     screensaverEffect: 'plasma',
     screensaverPalette: 'aurora',
     screensaverFps: 10,
+    showSongTitle: config.showSongTitle !== false,
   };
 }
 
@@ -296,6 +297,7 @@ function syncWebState() {
     screensaverPalette: settings.screensaverPalette,
     screensaverFps: settings.screensaverFps,
     screensaverVisible: isScreensaverVisible(),
+    showSongTitle: settings.showSongTitle,
     co2: currentCo2,
     co2High,
     co2Threshold: CO2_THRESHOLD,
@@ -445,11 +447,13 @@ async function checkCover(_entities) {
     setCoverPixels(newPixels);
 
     // Show track info overlay
-    const activeEntityData = _entities[activeEntity];
-    if (activeEntityData?.attributes) {
-      const { media_artist, media_title } = activeEntityData.attributes;
-      if (media_artist || media_title) {
-        showTrackInfo(media_artist, media_title);
+    if (settings.showSongTitle) {
+      const activeEntityData = _entities[activeEntity];
+      if (activeEntityData?.attributes) {
+        const { media_artist, media_title } = activeEntityData.attributes;
+        if (media_artist || media_title) {
+          showTrackInfo(media_artist, media_title);
+        }
       }
     }
 
@@ -536,6 +540,32 @@ setCallbacks({
     settings.wledColors = wledColors;
     saveSettings();
     console.log(`WLED colors changed to ${wledColors}`);
+  },
+
+  onShowSongTitleChange: (enabled) => {
+    settings.showSongTitle = enabled;
+    saveSettings();
+    // Stop any in-progress overlay immediately when disabled
+    if (!enabled && isOverlayActive()) {
+      stopOverlay();
+      // Redraw current cover without the overlay
+      if (currentPixels && getMatrix() && !isTransitioning) {
+        const matrix = getMatrix();
+        for (let y = 0; y < MATRIX_SIZE; y++) {
+          for (let x = 0; x < MATRIX_SIZE; x++) {
+            const i = (y * MATRIX_SIZE + x) * 4;
+            matrix.fgColor({
+              r: currentPixels.data[i],
+              g: currentPixels.data[i + 1],
+              b: currentPixels.data[i + 2],
+            }).setPixel(x, y);
+          }
+        }
+        drawCo2Indicator();
+        matrixSync();
+      }
+    }
+    console.log(`Song title overlay: ${enabled ? 'enabled' : 'disabled'}`);
   },
   
   onRefresh: () => {
