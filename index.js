@@ -409,10 +409,6 @@ async function checkCover(_entities) {
 
   // Same cover, skip
   if (url === currentCover) return;
-  
-  currentCover = url;
-  currentEntity = activeEntity;
-  syncWebState();
 
   try {
     // Fetch album art
@@ -425,6 +421,12 @@ async function checkCover(_entities) {
 
     // Get pixels and transition
     const newPixels = await getPixelsFromBuffer(imageBuffer);
+
+    // Fetch + decode succeeded — commit state now so a failed fetch can't
+    // freeze the old cover on the matrix or block retries for the same URL.
+    currentCover = url;
+    currentEntity = activeEntity;
+    syncWebState();
 
     if (getMatrix()) {
       stopOverlay();
