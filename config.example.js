@@ -38,7 +38,7 @@ export default {
   // Options: 'clock', 'screensaver', 'off'
   idleMode: 'clock',
   clockColor: { r: 120, g: 80, b: 200 }, // Purple
-  clockStyle: 'classic', // classic, sevenSegment, rounded, tallCondensed
+  clockStyle: 'classic', // classic, sevenSegment, rounded, tallCondensed, analog
   screensaverPalette: 'aurora', // aurora, ember, ocean, sunset, forest
   screensaverFps: 10, // 5-30
   
