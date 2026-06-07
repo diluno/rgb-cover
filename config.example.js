@@ -42,7 +42,8 @@ export default {
   screensaverPalette: 'aurora', // aurora, ember, ocean, sunset, forest
   screensaverFps: 10, // 5-30
   
-  // CO2 monitoring - shows red dot when above threshold
+  // CO2 monitoring - shows a 1px screen border (orange, then red) when above threshold
   co2Entity: 'sensor.indoor_carbon_dioxide',
-  co2Threshold: 1000, // ppm
+  co2OrangeThreshold: 1000, // ppm - orange border at/above this
+  co2RedThreshold: 1400, // ppm - red border at/above this
 };

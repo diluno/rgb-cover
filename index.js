@@ -62,7 +62,12 @@ const homeassistant = new HomeAssistant();
 const coverBase = config.hassioUrl;
 const mediaEntities = config.entities;
 const CO2_ENTITY = config.co2Entity || 'sensor.indoor_carbon_dioxide';
-const CO2_THRESHOLD = config.co2Threshold || 1000; // ppm
+const CO2_ORANGE_THRESHOLD = config.co2OrangeThreshold || config.co2Threshold || 1000; // ppm
+const CO2_RED_THRESHOLD = config.co2RedThreshold || 1400; // ppm
+const CO2_COLORS = {
+  orange: { r: 255, g: 110, b: 0 },
+  red: { r: 255, g: 0, b: 0 },
+};
 
 // State
 let currentCover = '';
@@ -74,7 +79,7 @@ let lastEntities = null;
 let turnOffTimer = null;
 let pendingCoverCheck = false;
 let currentCo2 = null;
-let co2High = false;
+let co2Tier = 'ok'; // 'ok' | 'orange' | 'red'
 
 // ==================== SETTINGS PERSISTENCE ====================
 
@@ -223,22 +228,35 @@ function startIdleMode() {
   }
 }
 
-// Draw red CO2 warning dot in top-right corner
+// Draw a 1px CO2 warning border around the screen (orange or red by tier)
 function drawCo2Indicator() {
-  if (!co2High) return;
-  
+  if (co2Tier === 'ok') return;
+
   const matrix = getMatrix();
   if (!matrix) return;
-  
-  // Draw a 3x3 red dot in top-right corner (with 2px margin)
-  const dotSize = 3;
-  const margin = 2;
-  const startX = MATRIX_SIZE - dotSize - margin;
-  const startY = margin;
-  
-  for (let y = 0; y < dotSize; y++) {
-    for (let x = 0; x < dotSize; x++) {
-      matrix.fgColor({ r: 255, g: 0, b: 0 }).setPixel(startX + x, startY + y);
+
+  matrix.fgColor(CO2_COLORS[co2Tier]);
+  const max = MATRIX_SIZE - 1;
+  for (let i = 0; i < MATRIX_SIZE; i++) {
+    matrix.setPixel(i, 0);   // top edge
+    matrix.setPixel(i, max); // bottom edge
+    matrix.setPixel(0, i);   // left edge
+    matrix.setPixel(max, i); // right edge
+  }
+}
+
+// Redraw the current cover pixels (used to clear a stale CO2 border)
+function redrawCoverPixels() {
+  const matrix = getMatrix();
+  if (!currentPixels || !matrix) return;
+  for (let y = 0; y < MATRIX_SIZE; y++) {
+    for (let x = 0; x < MATRIX_SIZE; x++) {
+      const i = (y * MATRIX_SIZE + x) * 4;
+      matrix.fgColor({
+        r: currentPixels.data[i],
+        g: currentPixels.data[i + 1],
+        b: currentPixels.data[i + 2],
+      }).setPixel(x, y);
     }
   }
 }
@@ -250,28 +268,31 @@ function checkCo2(entities) {
   const value = parseFloat(co2Entity.state);
   if (isNaN(value)) return;
   
-  const wasHigh = co2High;
+  const wasTier = co2Tier;
   const prevCo2 = currentCo2;
   currentCo2 = value;
-  co2High = value >= CO2_THRESHOLD;
-  
+  co2Tier = value >= CO2_RED_THRESHOLD ? 'red'
+    : value >= CO2_ORANGE_THRESHOLD ? 'orange'
+    : 'ok';
+
   // Update web state if value changed
   if (prevCo2 !== currentCo2) {
     syncWebState();
   }
-  
-  // If CO2 status changed, redraw indicator (but not during transitions)
-  if (wasHigh !== co2High) {
-    console.log(`CO2: ${value} ppm - ${co2High ? 'HIGH!' : 'OK'}`);
+
+  // If CO2 tier changed, redraw indicator (but not during transitions)
+  if (wasTier !== co2Tier) {
+    console.log(`CO2: ${value} ppm - ${co2Tier.toUpperCase()}`);
     // Don't redraw during transitions - indicator will be drawn after
     if (isTransitioning) return;
 
-    // Redraw current display with updated indicator
+    // Redraw current display with updated border
     if (isClockVisible()) {
       renderClock();
     } else if (isScreensaverVisible()) {
       // Screensaver handles its own overlay via callback
     } else if (currentPixels && getMatrix()) {
+      redrawCoverPixels(); // clear any previous border before drawing the new one
       drawCo2Indicator();
       matrixSync();
     }
@@ -299,8 +320,9 @@ function syncWebState() {
     screensaverVisible: isScreensaverVisible(),
     showSongTitle: settings.showSongTitle,
     co2: currentCo2,
-    co2High,
-    co2Threshold: CO2_THRESHOLD,
+    co2Tier,
+    co2OrangeThreshold: CO2_ORANGE_THRESHOLD,
+    co2RedThreshold: CO2_RED_THRESHOLD,
   });
 }
 
